@@ -34,10 +34,10 @@ const PROVIDERS = [
     id: 'bitbucket',
     name: 'Bitbucket',
     bg: 'bg-blue-700 hover:bg-blue-600',
-    tokenUrl: 'https://bitbucket.org/account/settings/app-passwords/new',
-    tokenLabel: 'Create a Bitbucket App Password',
-    tokenScopes: 'Required permissions: Repositories (Read, Write), Pull requests (Read, Write)',
-    patPlaceholder: 'App password...',
+    tokenUrl: 'https://id.atlassian.com/manage-profile/security/api-tokens',
+    tokenLabel: 'Create a Bitbucket API Token',
+    tokenScopes: 'Required scopes: Repositories (Read, Write), Pull requests (Read, Write)',
+    patPlaceholder: 'API token...',
     icon: (
       <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
         <path d="M.778 1.213a.768.768 0 0 0-.768.892l3.263 19.81c.084.5.515.868 1.022.873H19.95a.772.772 0 0 0 .77-.646l3.27-20.03a.768.768 0 0 0-.768-.891zM14.52 15.53H9.522L8.17 8.466h7.561z" />
@@ -124,7 +124,7 @@ export default function Step1_Auth({ onAuth }) {
           {/* PAT input */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              {provider === 'bitbucket' ? 'App Password' : 'Personal Access Token'}
+              {provider === 'bitbucket' ? 'API Token' : 'Personal Access Token'}
             </label>
             <div className="relative">
               <input

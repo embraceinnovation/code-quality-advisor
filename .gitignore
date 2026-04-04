@@ -1,0 +1,30 @@
+# Python
+.env
+.env.local
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+env/
+*.egg-info/
+
+# Frontend build artifacts (regenerated via npm run build)
+frontend/node_modules/
+frontend/dist/
+node_modules/
+
+# NOTE: static/ is committed — it contains the built frontend served by FastAPI
+# To rebuild: cd frontend && npm run build
+
+# Temp / git clone workspace
+/tmp/
+
+# Logs & OS
+*.log
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/settings.json

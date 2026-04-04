@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+pydantic-settings
+python-dotenv
+httpx
+cryptography
+anthropic
+openai
+google-generativeai
+gitpython

@@ -146,9 +146,16 @@ export default function Step1_Auth({ onAuth }) {
             {provider === 'bitbucket' ? (
               <div className="mt-2 bg-blue-50 border border-blue-200 rounded-lg p-2.5 space-y-1.5">
                 <p className="text-xs font-semibold text-blue-800">Required token scopes:</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {['Account — Read', 'Repositories — Read', 'Repositories — Write'].map((s) => (
-                    <span key={s} className="px-2 py-0.5 bg-blue-100 text-blue-800 border border-blue-300 rounded text-xs font-medium">{s}</span>
+                <div className="flex flex-col gap-1">
+                  {[
+                    { label: 'Account — Read', scope: 'read:user:bitbucket' },
+                    { label: 'Repositories — Read', scope: 'read:repository:bitbucket' },
+                    { label: 'Repositories — Write', scope: 'write:repository:bitbucket' },
+                  ].map(({ label, scope }) => (
+                    <div key={scope} className="flex items-center justify-between bg-blue-100 border border-blue-300 rounded px-2 py-1">
+                      <span className="text-xs font-semibold text-blue-900">{label}</span>
+                      <span className="text-xs font-mono text-blue-600 ml-3">{scope}</span>
+                    </div>
                   ))}
                 </div>
                 <a href={selected.tokenUrl} target="_blank" rel="noreferrer" className="text-xs text-blue-700 hover:underline font-medium block pt-0.5">

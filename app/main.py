@@ -1,14 +1,12 @@
+import asyncio
 import logging
 import os
-import shutil
-import stat
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from app.config import get_settings
 from app.routers import oauth, repos, scan, changes, git_ops, report
 
 logging.basicConfig(level=logging.INFO)
@@ -17,20 +15,8 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    settings = get_settings()
-    clone_dir = settings.git_clone_base_dir
-    # Clean up any leftover clone dirs from prior crashes
-    def _force_remove(func, path, _exc):
-        os.chmod(path, stat.S_IWRITE)
-        func(path)
-    if os.path.exists(clone_dir):
-        shutil.rmtree(clone_dir, onerror=_force_remove)
-    os.makedirs(clone_dir, exist_ok=True)
-    logger.info(f"Clone workspace ready: {clone_dir}")
-
     # Periodic session purge every hour
     async def _purge_loop():
-        import asyncio
         from app.session_store import purge_expired
         while True:
             await asyncio.sleep(3600)
@@ -38,11 +24,9 @@ async def lifespan(app: FastAPI):
             if n:
                 logger.info(f"Purged {n} expired session(s)")
 
-    import asyncio
     task = asyncio.create_task(_purge_loop())
     yield
     task.cancel()
-    shutil.rmtree(clone_dir, ignore_errors=True)
 
 
 app = FastAPI(

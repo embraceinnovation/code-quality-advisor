@@ -41,7 +41,7 @@ async def create_branch(
 
 @router.get("/diff")
 async def get_diff(session: SessionData = Depends(get_current_session)):
-    if not session.clone_dir or not session.pending_branch:
+    if not session.pending_branch:
         raise HTTPException(400, "No branch prepared yet")
     diff_text = await git_service.get_diff(session)
     return {"diff": diff_text, "branch_name": session.pending_branch}
@@ -49,7 +49,7 @@ async def get_diff(session: SessionData = Depends(get_current_session)):
 
 @router.post("/push")
 async def push_branch(session: SessionData = Depends(get_current_session)):
-    if not session.pending_branch or not session.clone_dir:
+    if not session.pending_branch:
         raise HTTPException(400, "No branch prepared to push")
     push_url = await git_service.push_branch(session)
     return {"push_url": push_url, "branch_name": session.pending_branch}

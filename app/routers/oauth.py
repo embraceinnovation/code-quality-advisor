@@ -54,7 +54,7 @@ async def _validate_gitlab(pat: str, base_url: str) -> dict:
 
 
 async def _validate_bitbucket(email: str, api_token: str) -> dict:
-    """Validate a Bitbucket API token (replaces deprecated app passwords).
+    """Validate a Bitbucket API token.
     Basic auth uses email:token; workspace slug is derived from /user response."""
     creds = base64.b64encode(f"{email}:{api_token}".encode()).decode()
     async with httpx.AsyncClient(timeout=10) as client:
@@ -62,8 +62,11 @@ async def _validate_bitbucket(email: str, api_token: str) -> dict:
             "https://api.bitbucket.org/2.0/user",
             headers={"Authorization": f"Basic {creds}"},
         )
+    if resp.status_code == 401:
+        detail = resp.json().get("error", {}).get("message", "Unauthorized")
+        raise HTTPException(401, f"Bitbucket rejected the credentials: {detail}. Ensure you are using a Bitbucket API token (not an Atlassian/Jira token) and your email address.")
     if resp.status_code != 200:
-        raise HTTPException(401, "Invalid Bitbucket credentials — check your email address and API token scopes")
+        raise HTTPException(resp.status_code, f"Bitbucket error {resp.status_code}: {resp.text[:200]}")
     u = resp.json()
     # nickname is the workspace slug used in API URL paths (e.g. /repositories/{nickname}/)
     workspace_slug = u.get("nickname") or u.get("username", "")

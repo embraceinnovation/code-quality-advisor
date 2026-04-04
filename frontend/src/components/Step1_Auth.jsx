@@ -34,8 +34,8 @@ const PROVIDERS = [
     id: 'bitbucket',
     name: 'Bitbucket',
     bg: 'bg-blue-700 hover:bg-blue-600',
-    tokenUrl: 'https://id.atlassian.com/manage-profile/security/api-tokens',
-    tokenLabel: 'Create an Atlassian API Token',
+    tokenUrl: 'https://bitbucket.org/account/settings/api-tokens',
+    tokenLabel: 'Create a Bitbucket API Token ↗',
     tokenScopes: 'Required scopes: Account (Read) · Repositories (Read + Write)',
     patPlaceholder: 'API token...',
     icon: (
@@ -152,7 +152,7 @@ export default function Step1_Auth({ onAuth }) {
                   ))}
                 </div>
                 <a href={selected.tokenUrl} target="_blank" rel="noreferrer" className="text-xs text-blue-700 hover:underline font-medium block pt-0.5">
-                  {selected.tokenLabel} ↗
+                  {selected.tokenLabel}
                 </a>
               </div>
             ) : (

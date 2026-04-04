@@ -149,6 +149,7 @@ export default function Step1_Auth({ onAuth }) {
                 <div className="flex flex-col gap-1">
                   {[
                     { label: 'Account — Read', scope: 'read:user:bitbucket' },
+                    { label: 'Workspaces — Read', scope: 'read:workspace:bitbucket' },
                     { label: 'Repositories — Read', scope: 'read:repository:bitbucket' },
                     { label: 'Repositories — Write', scope: 'write:repository:bitbucket' },
                   ].map(({ label, scope }) => (

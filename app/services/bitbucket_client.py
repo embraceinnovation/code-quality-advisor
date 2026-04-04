@@ -12,28 +12,52 @@ def _headers(session: SessionData) -> dict:
     return {"Authorization": f"Basic {credentials}"}
 
 
+async def _list_workspaces(session: SessionData, client: httpx.AsyncClient) -> list[str]:
+    """Return all workspace slugs the authenticated user belongs to."""
+    slugs = []
+    url = f"{BASE}/workspaces?pagelen=100&sort=slug"
+    while url:
+        resp = await client.get(url, headers=_headers(session))
+        data = resp.json()
+        slugs.extend(w["slug"] for w in data.get("values", []))
+        url = data.get("next")
+    # Always include the user's own workspace slug as a fallback
+    if session.workspace and session.workspace not in slugs:
+        slugs.insert(0, session.workspace)
+    return slugs
+
+
 async def list_repos(session: SessionData) -> list[dict]:
     repos = []
-    url = f"{BASE}/repositories/{session.workspace}?pagelen=100&sort=-updated_on"
+    seen = set()
     async with httpx.AsyncClient(timeout=30) as client:
-        while url:
-            resp = await client.get(url, headers=_headers(session))
-            data = resp.json()
-            for r in data.get("values", []):
-                owner = r.get("workspace", {}).get("slug", session.workspace)
-                repos.append({
-                    "id": r["uuid"],
-                    "name": r["slug"],
-                    "full_name": r["full_name"],
-                    "owner": owner,
-                    "description": r.get("description", ""),
-                    "private": r.get("is_private", True),
-                    "updated_at": r.get("updated_on", ""),
-                    "stars": 0,
-                    "language": r.get("language", ""),
-                    "default_branch": r.get("mainbranch", {}).get("name", "main"),
-                })
-            url = data.get("next")
+        workspaces = await _list_workspaces(session, client)
+        for ws in workspaces:
+            url = f"{BASE}/repositories/{ws}?pagelen=100&sort=-updated_on"
+            while url:
+                resp = await client.get(url, headers=_headers(session))
+                if resp.status_code != 200:
+                    break
+                data = resp.json()
+                for r in data.get("values", []):
+                    uid = r.get("uuid")
+                    if uid in seen:
+                        continue
+                    seen.add(uid)
+                    owner = r.get("workspace", {}).get("slug", ws)
+                    repos.append({
+                        "id": uid,
+                        "name": r["slug"],
+                        "full_name": r["full_name"],
+                        "owner": owner,
+                        "description": r.get("description", ""),
+                        "private": r.get("is_private", True),
+                        "updated_at": r.get("updated_on", ""),
+                        "stars": 0,
+                        "language": r.get("language", ""),
+                        "default_branch": r.get("mainbranch", {}).get("name", "main"),
+                    })
+                url = data.get("next")
     return repos
 
 

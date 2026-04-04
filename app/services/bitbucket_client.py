@@ -6,7 +6,9 @@ BASE = "https://api.bitbucket.org/2.0"
 
 
 def _headers(session: SessionData) -> dict:
-    credentials = base64.b64encode(f"{session.workspace}:{session.access_token}".encode()).decode()
+    # API tokens use email:token for Basic auth (session.username stores the email)
+    # session.workspace holds the workspace slug used in URL paths
+    credentials = base64.b64encode(f"{session.username}:{session.access_token}".encode()).decode()
     return {"Authorization": f"Basic {credentials}"}
 
 

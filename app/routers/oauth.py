@@ -53,19 +53,24 @@ async def _validate_gitlab(pat: str, base_url: str) -> dict:
     }
 
 
-async def _validate_bitbucket(username: str, app_password: str) -> dict:
-    creds = base64.b64encode(f"{username}:{app_password}".encode()).decode()
+async def _validate_bitbucket(email: str, api_token: str) -> dict:
+    """Validate a Bitbucket API token (replaces deprecated app passwords).
+    Basic auth uses email:token; workspace slug is derived from /user response."""
+    creds = base64.b64encode(f"{email}:{api_token}".encode()).decode()
     async with httpx.AsyncClient(timeout=10) as client:
         resp = await client.get(
             "https://api.bitbucket.org/2.0/user",
             headers={"Authorization": f"Basic {creds}"},
         )
     if resp.status_code != 200:
-        raise HTTPException(401, "Invalid Bitbucket credentials — check username and app password permissions")
+        raise HTTPException(401, "Invalid Bitbucket credentials — check your email address and API token scopes")
     u = resp.json()
+    # nickname is the workspace slug used in API URL paths (e.g. /repositories/{nickname}/)
+    workspace_slug = u.get("nickname") or u.get("username", "")
     return {
-        "username": u.get("account_id", username),
-        "display_name": u.get("display_name", username),
+        "username": email,           # stored as session.username — used in Basic auth header
+        "workspace": workspace_slug, # stored as session.workspace — used in API URL paths
+        "display_name": u.get("display_name", email),
         "avatar_url": u.get("links", {}).get("avatar", {}).get("href", ""),
     }
 
@@ -94,10 +99,10 @@ async def login(body: LoginRequest):
 
     elif body.provider == "bitbucket":
         if not body.username.strip():
-            raise HTTPException(400, "Bitbucket username is required")
+            raise HTTPException(400, "Atlassian email address is required for Bitbucket")
         user_info = await _validate_bitbucket(body.username.strip(), body.pat)
-        raw_token = body.pat          # store raw app password; username kept in workspace
-        workspace = body.username.strip()
+        raw_token = body.pat
+        workspace = user_info["workspace"]  # derived from /user response (nickname)
 
     else:
         raise HTTPException(400, f"Unknown provider: {body.provider}")

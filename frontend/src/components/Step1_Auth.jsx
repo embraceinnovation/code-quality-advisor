@@ -61,7 +61,7 @@ export default function Step1_Auth({ onAuth }) {
     setError('')
     if (!pat.trim()) return
     if (provider === 'bitbucket' && !username.trim()) {
-      setError('Bitbucket requires your username (account ID).')
+      setError('Bitbucket requires your Atlassian email address.')
       return
     }
     setLoading(true)
@@ -104,19 +104,19 @@ export default function Step1_Auth({ onAuth }) {
         </div>
 
         <form onSubmit={handleSignIn} className="space-y-4">
-          {/* Bitbucket username */}
+          {/* Bitbucket email */}
           {provider === 'bitbucket' && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Bitbucket Username
+                Atlassian Email Address
               </label>
               <input
-                type="text"
+                type="email"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="your-username"
+                placeholder="you@example.com"
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                autoComplete="username"
+                autoComplete="email"
               />
             </div>
           )}
@@ -124,7 +124,7 @@ export default function Step1_Auth({ onAuth }) {
           {/* PAT input */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              {provider === 'bitbucket' ? 'API Token' : 'Personal Access Token'}
+              {provider === 'bitbucket' ? 'Bitbucket API Token' : 'Personal Access Token'}
             </label>
             <div className="relative">
               <input

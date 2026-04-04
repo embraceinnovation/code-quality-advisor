@@ -35,8 +35,8 @@ const PROVIDERS = [
     name: 'Bitbucket',
     bg: 'bg-blue-700 hover:bg-blue-600',
     tokenUrl: 'https://id.atlassian.com/manage-profile/security/api-tokens',
-    tokenLabel: 'Create a Bitbucket API Token',
-    tokenScopes: 'Required scopes: Repositories (Read, Write), Pull requests (Read, Write)',
+    tokenLabel: 'Create an Atlassian API Token',
+    tokenScopes: 'Required scopes: Account (Read) · Repositories (Read + Write)',
     patPlaceholder: 'API token...',
     icon: (
       <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -143,15 +143,26 @@ export default function Step1_Auth({ onAuth }) {
                 {showPat ? 'Hide' : 'Show'}
               </button>
             </div>
-            <p className="mt-1.5 text-xs text-gray-400">{selected.tokenScopes}</p>
-            <a
-              href={selected.tokenUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="text-xs text-indigo-500 hover:underline"
-            >
-              {selected.tokenLabel} ↗
-            </a>
+            {provider === 'bitbucket' ? (
+              <div className="mt-2 bg-blue-50 border border-blue-200 rounded-lg p-2.5 space-y-1.5">
+                <p className="text-xs font-semibold text-blue-800">Required token scopes:</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {['Account — Read', 'Repositories — Read', 'Repositories — Write'].map((s) => (
+                    <span key={s} className="px-2 py-0.5 bg-blue-100 text-blue-800 border border-blue-300 rounded text-xs font-medium">{s}</span>
+                  ))}
+                </div>
+                <a href={selected.tokenUrl} target="_blank" rel="noreferrer" className="text-xs text-blue-700 hover:underline font-medium block pt-0.5">
+                  {selected.tokenLabel} ↗
+                </a>
+              </div>
+            ) : (
+              <>
+                <p className="mt-1.5 text-xs text-gray-400">{selected.tokenScopes}</p>
+                <a href={selected.tokenUrl} target="_blank" rel="noreferrer" className="text-xs text-indigo-500 hover:underline">
+                  {selected.tokenLabel} ↗
+                </a>
+              </>
+            )}
           </div>
 
           {error && (

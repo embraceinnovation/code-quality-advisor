@@ -1,2 +1,7 @@
-# Vercel serverless entry point — imports the FastAPI app
-from app.main import app  # noqa: F401 — Vercel picks up `app` from this module
+# Vercel serverless entry point
+# Mangum wraps FastAPI (ASGI) for Lambda-compatible runtimes.
+# lifespan="off" because serverless functions don't support startup/shutdown events.
+from mangum import Mangum
+from app.main import app
+
+handler = Mangum(app, lifespan="off")

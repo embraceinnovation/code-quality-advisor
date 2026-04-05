@@ -194,6 +194,35 @@ async def _call_llm(
         raise ValueError(f"Unknown LLM provider: {provider}")
 
 
+# Concurrency limits per provider — free tiers have low RPM ceilings
+_PROVIDER_CONCURRENCY = {
+    "groq":     2,   # 30 RPM free tier — keep well under
+    "cerebras": 2,   # similar free tier constraints
+    "mistral":  2,
+    "deepseek": 3,
+    "together": 3,
+    "ollama":   2,   # local CPU/GPU — don't overwhelm
+    "google":   4,
+    "openai":   5,
+    "anthropic": 5,
+}
+_DEFAULT_CONCURRENCY = 3
+
+
+def _extract_retry_after(exc: Exception) -> float:
+    """Pull retry-after seconds from a 429 exception if available."""
+    msg = str(exc)
+    # httpx / openai SDK often includes 'retry-after: N' or 'please try again in Xs'
+    import re
+    m = re.search(r'retry.after[:\s]+([0-9.]+)', msg, re.IGNORECASE)
+    if m:
+        return float(m.group(1)) + 1
+    m = re.search(r'try again in ([0-9.]+)s', msg, re.IGNORECASE)
+    if m:
+        return float(m.group(1)) + 1
+    return 60.0  # safe default: wait a full minute
+
+
 async def analyze_files(
     client,
     session: SessionData,
@@ -201,10 +230,11 @@ async def analyze_files(
     frameworks: list[str],
 ) -> AsyncGenerator[dict, None]:
     settings = get_settings()
-    semaphore = asyncio.Semaphore(5)
+    provider = session.llm_provider
+    concurrency = _PROVIDER_CONCURRENCY.get(provider, _DEFAULT_CONCURRENCY)
+    semaphore = asyncio.Semaphore(concurrency)
     size_limit = settings.claude_file_size_limit_kb
 
-    provider = session.llm_provider
     model = session.llm_model
     api_key = session.llm_api_key or settings.anthropic_api_key
     max_tokens = settings.claude_max_tokens
@@ -230,7 +260,7 @@ async def analyze_files(
                     f"```{lang.lower().split()[0]}\n{content}\n```"
                 )
 
-                for attempt in range(3):
+                for attempt in range(5):
                     try:
                         raw = await _call_llm(provider, model, api_key, _ANALYSIS_SYSTEM_PROMPT, user_msg, max_tokens)
                         issues = json.loads(raw.strip())
@@ -252,9 +282,10 @@ async def analyze_files(
                         logger.warning(f"JSON parse failed for {path}, attempt {attempt + 1}")
                         await asyncio.sleep(2 ** attempt)
                     except Exception as e:
-                        if "rate" in str(e).lower() or "429" in str(e):
-                            logger.warning(f"Rate limit on {path}, attempt {attempt + 1}")
-                            await asyncio.sleep(2 ** (attempt + 1))
+                        if "429" in str(e) or "rate" in str(e).lower():
+                            wait = _extract_retry_after(e)
+                            logger.warning(f"Rate limit on {path}, waiting {wait:.0f}s (attempt {attempt + 1})")
+                            await asyncio.sleep(wait)
                         else:
                             raise
 

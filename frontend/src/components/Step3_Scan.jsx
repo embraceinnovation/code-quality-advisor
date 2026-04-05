@@ -115,10 +115,10 @@ export default function Step3_Scan({ repo, onBack, onContinue }) {
   const [fileCount, setFileCount] = useState(0)
   const [selected, setSelected] = useState(new Set())
 
-  // LLM selection state
-  const [llmProvider, setLlmProvider] = useState('groq')
-  const [llmModel, setLlmModel] = useState('llama-3.3-70b-versatile')
-  const [llmApiKey, setLlmApiKey] = useState('')
+  // LLM selection state — persisted to localStorage so it survives page refreshes
+  const [llmProvider, setLlmProvider] = useState(() => localStorage.getItem('cqa_llm_provider') || 'groq')
+  const [llmModel, setLlmModel] = useState(() => localStorage.getItem('cqa_llm_model') || 'llama-3.3-70b-versatile')
+  const [llmApiKey, setLlmApiKey] = useState(() => localStorage.getItem('cqa_llm_key') || '')
   const [showKey, setShowKey] = useState(false)
 
   const providerConfig = LLM_PROVIDERS.find((p) => p.id === llmProvider)
@@ -128,6 +128,19 @@ export default function Step3_Scan({ repo, onBack, onContinue }) {
     setLlmProvider(id)
     setLlmModel(cfg.models[0].id)
     setLlmApiKey('')
+    localStorage.setItem('cqa_llm_provider', id)
+    localStorage.setItem('cqa_llm_model', cfg.models[0].id)
+    localStorage.removeItem('cqa_llm_key')
+  }
+
+  const handleModelChange = (model) => {
+    setLlmModel(model)
+    localStorage.setItem('cqa_llm_model', model)
+  }
+
+  const handleKeyChange = (key) => {
+    setLlmApiKey(key)
+    localStorage.setItem('cqa_llm_key', key)
   }
 
   const canStart = llmApiKey.trim().length > 0
@@ -247,7 +260,7 @@ export default function Step3_Scan({ repo, onBack, onContinue }) {
 
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1">Model</label>
-            <select value={llmModel} onChange={(e) => setLlmModel(e.target.value)} className="input">
+            <select value={llmModel} onChange={(e) => handleModelChange(e.target.value)} className="input">
               {providerConfig.models.map((m) => (
                 <option key={m.id} value={m.id}>{m.label}</option>
               ))}
@@ -263,7 +276,7 @@ export default function Step3_Scan({ repo, onBack, onContinue }) {
               <input
                 type={showKey ? 'text' : 'password'}
                 value={llmApiKey}
-                onChange={(e) => setLlmApiKey(e.target.value)}
+                onChange={(e) => handleKeyChange(e.target.value)}
                 placeholder={providerConfig.keyPlaceholder}
                 className="input font-mono flex-1"
               />

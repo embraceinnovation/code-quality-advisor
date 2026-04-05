@@ -49,6 +49,38 @@ const LLM_PROVIDERS = [
       { id: 'mistral-large-latest', label: 'Mistral Large' },
     ],
   },
+  {
+    id: 'cerebras',
+    name: 'Cerebras',
+    badge: 'Free tier',
+    badgeStyle: 'bg-green-100 text-green-700',
+    keyRequired: true,
+    keyLabel: 'Cerebras API Key',
+    keyPlaceholder: 'csk-...',
+    keyHref: 'https://cloud.cerebras.ai/',
+    models: [
+      { id: 'llama-3.3-70b', label: 'Llama 3.3 70B (ultra-fast)' },
+      { id: 'llama3.1-8b', label: 'Llama 3.1 8B (fastest)' },
+    ],
+  },
+  // ── Local ─────────────────────────────────────────────────────────────────────
+  {
+    id: 'ollama',
+    name: 'Ollama',
+    badge: 'Local',
+    badgeStyle: 'bg-purple-100 text-purple-700',
+    keyRequired: false,
+    keyLabel: 'No API key needed — runs on your machine',
+    keyPlaceholder: '',
+    keyHref: 'https://ollama.com/download',
+    models: [
+      { id: 'llama3.3', label: 'Llama 3.3 (recommended)' },
+      { id: 'qwen2.5-coder:7b', label: 'Qwen 2.5 Coder 7B' },
+      { id: 'qwen2.5-coder:32b', label: 'Qwen 2.5 Coder 32B' },
+      { id: 'codellama', label: 'Code Llama' },
+      { id: 'deepseek-coder-v2', label: 'DeepSeek Coder V2' },
+    ],
+  },
   // ── Paid ────────────────────────────────────────────────────────────────────
   {
     id: 'anthropic',
@@ -78,6 +110,20 @@ const LLM_PROVIDERS = [
       { id: 'gpt-4o', label: 'GPT-4o (recommended)' },
       { id: 'gpt-4o-mini', label: 'GPT-4o Mini (fastest)' },
       { id: 'gpt-4-turbo', label: 'GPT-4 Turbo' },
+    ],
+  },
+  {
+    id: 'deepseek',
+    name: 'DeepSeek',
+    badge: 'Paid',
+    badgeStyle: 'bg-gray-100 text-gray-500',
+    keyRequired: true,
+    keyLabel: 'DeepSeek API Key',
+    keyPlaceholder: 'sk-...',
+    keyHref: 'https://platform.deepseek.com/api_keys',
+    models: [
+      { id: 'deepseek-chat', label: 'DeepSeek V3 (recommended)' },
+      { id: 'deepseek-reasoner', label: 'DeepSeek R1 (reasoning)' },
     ],
   },
 ]
@@ -143,7 +189,7 @@ export default function Step3_Scan({ repo, onBack, onContinue }) {
     localStorage.setItem('cqa_llm_key', key)
   }
 
-  const canStart = llmApiKey.trim().length > 0
+  const canStart = !providerConfig?.keyRequired || llmApiKey.trim().length > 0
 
   useEffect(() => {
     detectFrameworks(repo.owner, repo.name, repo.branch)
@@ -245,13 +291,19 @@ export default function Step3_Scan({ repo, onBack, onContinue }) {
         <div className="flex-1 min-h-0 overflow-y-auto space-y-4 pr-1">
           <div>
             <p className="text-xs font-semibold text-green-600 uppercase tracking-wider mb-2">Free Tier</p>
-            <div className="grid grid-cols-3 gap-2 mb-3">
-              {LLM_PROVIDERS.filter((p) => p.badge !== 'Paid').map((p) => (
+            <div className="grid grid-cols-2 gap-2 mb-3">
+              {LLM_PROVIDERS.filter((p) => p.badge === 'Free tier').map((p) => (
+                <ProviderButton key={p.id} p={p} selected={llmProvider === p.id} onClick={() => handleProviderChange(p.id)} />
+              ))}
+            </div>
+            <p className="text-xs font-semibold text-purple-600 uppercase tracking-wider mb-2">Local (no key needed)</p>
+            <div className="grid grid-cols-1 gap-2 mb-3">
+              {LLM_PROVIDERS.filter((p) => p.badge === 'Local').map((p) => (
                 <ProviderButton key={p.id} p={p} selected={llmProvider === p.id} onClick={() => handleProviderChange(p.id)} />
               ))}
             </div>
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Paid</p>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               {LLM_PROVIDERS.filter((p) => p.badge === 'Paid').map((p) => (
                 <ProviderButton key={p.id} p={p} selected={llmProvider === p.id} onClick={() => handleProviderChange(p.id)} />
               ))}
@@ -267,24 +319,31 @@ export default function Step3_Scan({ repo, onBack, onContinue }) {
             </select>
           </div>
 
-          <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">
-              {providerConfig.keyLabel}{' '}
-              <a href={providerConfig.keyHref} target="_blank" rel="noopener noreferrer" className="text-brand-600 hover:underline">(get key ↗)</a>
-            </label>
-            <div className="flex gap-2">
-              <input
-                type={showKey ? 'text' : 'password'}
-                value={llmApiKey}
-                onChange={(e) => handleKeyChange(e.target.value)}
-                placeholder={providerConfig.keyPlaceholder}
-                className="input font-mono flex-1"
-              />
-              <button onClick={() => setShowKey((v) => !v)} className="btn btn-ghost px-3 py-2 text-xs">
-                {showKey ? 'Hide' : 'Show'}
-              </button>
+          {providerConfig.keyRequired ? (
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">
+                {providerConfig.keyLabel}{' '}
+                <a href={providerConfig.keyHref} target="_blank" rel="noopener noreferrer" className="text-brand-600 hover:underline">(get key ↗)</a>
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type={showKey ? 'text' : 'password'}
+                  value={llmApiKey}
+                  onChange={(e) => handleKeyChange(e.target.value)}
+                  placeholder={providerConfig.keyPlaceholder}
+                  className="input font-mono flex-1"
+                />
+                <button onClick={() => setShowKey((v) => !v)} className="btn btn-ghost px-3 py-2 text-xs">
+                  {showKey ? 'Hide' : 'Show'}
+                </button>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="bg-purple-50 border border-purple-200 rounded-xl p-3 text-xs text-purple-800 space-y-1">
+              <p className="font-semibold">Ollama must be running locally</p>
+              <p>Install from <a href={providerConfig.keyHref} target="_blank" rel="noopener noreferrer" className="underline">ollama.com</a>, then run <code className="bg-purple-100 px-1 rounded">ollama pull {llmModel}</code> to download the model.</p>
+            </div>
+          )}
         </div>
 
         <button

@@ -125,8 +125,12 @@ Keep it under 1500 words. Use real code examples where they help."""
 
 # Base URLs for OpenAI-compatible providers
 _OPENAI_COMPAT_BASE_URLS = {
-    "groq": "https://api.groq.com/openai/v1",
-    "mistral": "https://api.mistral.ai/v1",
+    "groq":      "https://api.groq.com/openai/v1",
+    "mistral":   "https://api.mistral.ai/v1",
+    "deepseek":  "https://api.deepseek.com/v1",
+    "cerebras":  "https://api.cerebras.ai/v1",
+    "together":  "https://api.together.xyz/v1",
+    "ollama":    "http://localhost:11434/v1",
 }
 
 
@@ -165,11 +169,13 @@ async def _call_llm(
 
         return await loop.run_in_executor(None, _generate)
 
-    elif provider in ("openai", "groq", "mistral"):
+    elif provider in ("openai", "groq", "mistral", "deepseek", "cerebras", "together", "ollama"):
         from openai import AsyncOpenAI
 
-        client_kwargs: dict = {"api_key": api_key}
         base_url = _OPENAI_COMPAT_BASE_URLS.get(provider)
+        # Ollama doesn't need a real key; use a placeholder so the client doesn't complain
+        effective_key = api_key if api_key else ("ollama" if provider == "ollama" else api_key)
+        client_kwargs: dict = {"api_key": effective_key}
         if base_url:
             client_kwargs["base_url"] = base_url
 

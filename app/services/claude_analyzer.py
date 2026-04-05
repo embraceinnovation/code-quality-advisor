@@ -242,6 +242,9 @@ async def analyze_files(
     analyzable = [f for f in files if _should_analyze(f, size_limit)]
     frameworks_str = ", ".join(frameworks) if frameworks else "general"
 
+    # Queue lets worker tasks push rate-limit notifications to the generator
+    notify_queue: asyncio.Queue = asyncio.Queue()
+
     async def analyze_one(file: dict) -> dict:
         path = file["path"]
         async with semaphore:
@@ -277,6 +280,8 @@ async def analyze_files(
                             for issue in issues
                             if isinstance(issue, dict)
                         ]
+                        # Clear any rate-limit status now that we succeeded
+                        await notify_queue.put({"event": "rate_limit_clear"})
                         return {"event": "progress", "file": path, "changes": changes}
                     except json.JSONDecodeError:
                         logger.warning(f"JSON parse failed for {path}, attempt {attempt + 1}")
@@ -285,6 +290,12 @@ async def analyze_files(
                         if "429" in str(e) or "rate" in str(e).lower():
                             wait = _extract_retry_after(e)
                             logger.warning(f"Rate limit on {path}, waiting {wait:.0f}s (attempt {attempt + 1})")
+                            await notify_queue.put({
+                                "event": "rate_limit",
+                                "wait": round(wait),
+                                "file": path,
+                                "attempt": attempt + 1,
+                            })
                             await asyncio.sleep(wait)
                         else:
                             raise
@@ -297,7 +308,12 @@ async def analyze_files(
 
     tasks = [asyncio.create_task(analyze_one(f)) for f in analyzable]
     for task in asyncio.as_completed(tasks):
+        # Drain any rate-limit notifications before yielding the next result
+        while not notify_queue.empty():
+            yield notify_queue.get_nowait()
         result = await task
+        while not notify_queue.empty():
+            yield notify_queue.get_nowait()
         yield result
 
 

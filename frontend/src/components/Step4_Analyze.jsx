@@ -20,6 +20,7 @@ export default function Step4_Analyze({ repo, frameworks, detectedFrameworks = [
   const [total, setTotal] = useState(0)
   const [issuesFound, setIssuesFound] = useState(0)
   const [error, setError] = useState(null)
+  const [rateLimitWait, setRateLimitWait] = useState(null) // { wait, file } | null
   const allChanges = useRef([])
   const abortRef = useRef(null)
 
@@ -39,10 +40,16 @@ export default function Step4_Analyze({ repo, frameworks, detectedFrameworks = [
           setCurrentFile(event.file)
           setDone(event.done)
           setTotal(event.total)
+          setRateLimitWait(null)
           const newChanges = event.new_changes || []
           allChanges.current = [...allChanges.current, ...newChanges]
           setIssuesFound(allChanges.current.length)
+        } else if (event.event === 'rate_limit') {
+          setRateLimitWait({ wait: event.wait, file: event.file })
+        } else if (event.event === 'rate_limit_clear') {
+          setRateLimitWait(null)
         } else if (event.event === 'complete') {
+          setRateLimitWait(null)
           setStatus('done')
         } else if (event.event === 'error') {
           console.warn('Analysis error on', event.file, event.message)
@@ -117,11 +124,16 @@ export default function Step4_Analyze({ repo, frameworks, detectedFrameworks = [
         )}
       </div>
 
-      {status === 'running' && (
+      {status === 'running' && rateLimitWait ? (
+        <div className="bg-orange-50 border border-orange-300 rounded-xl px-4 py-3 text-orange-800 text-sm space-y-0.5">
+          <p className="font-bold">⏸ Rate limit hit — pausing for {rateLimitWait.wait}s</p>
+          <p className="text-xs font-normal opacity-80">The provider asked us to wait before retrying. Analysis will resume automatically.</p>
+        </div>
+      ) : status === 'running' ? (
         <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-amber-800 text-sm font-semibold">
           ⏳ Large repositories may take several minutes. Keep this tab open.
         </div>
-      )}
+      ) : null}
 
       <div className="flex gap-3 mt-auto">
         <button onClick={handleBack} className="btn btn-back">← Back</button>

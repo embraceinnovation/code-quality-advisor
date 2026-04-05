@@ -165,7 +165,17 @@ export default function Step3_Scan({ repo, onBack, onContinue }) {
   // LLM selection — provider + model persisted globally; keys stored per-provider
   const [llmProvider, setLlmProvider] = useState(() => localStorage.getItem('cqa_llm_provider') || 'groq')
   const [llmModel, setLlmModel] = useState(() => localStorage.getItem('cqa_llm_model') || 'llama-3.3-70b-versatile')
-  const [llmApiKey, setLlmApiKey] = useState(() => localStorage.getItem(`cqa_llm_key_${localStorage.getItem('cqa_llm_provider') || 'groq'}`) || '')
+  const [llmApiKey, setLlmApiKey] = useState(() => {
+    const provider = localStorage.getItem('cqa_llm_provider') || 'groq'
+    const perProviderKey = localStorage.getItem(`cqa_llm_key_${provider}`)
+    const legacyKey = localStorage.getItem('cqa_llm_key')
+    const key = perProviderKey || legacyKey || ''
+    // Migrate legacy key to per-provider format
+    if (!perProviderKey && legacyKey) {
+      localStorage.setItem(`cqa_llm_key_${provider}`, legacyKey)
+    }
+    return key
+  })
   const [showKey, setShowKey] = useState(false)
 
   const providerConfig = LLM_PROVIDERS.find((p) => p.id === llmProvider)
@@ -174,8 +184,10 @@ export default function Step3_Scan({ repo, onBack, onContinue }) {
     const cfg = LLM_PROVIDERS.find((p) => p.id === id)
     setLlmProvider(id)
     setLlmModel(cfg.models[0].id)
-    // Restore saved key for this provider (may be empty)
-    const savedKey = localStorage.getItem(`cqa_llm_key_${id}`) || ''
+    // Restore saved key for this provider, fall back to legacy single key
+    const savedKey = localStorage.getItem(`cqa_llm_key_${id}`)
+      || localStorage.getItem('cqa_llm_key')
+      || ''
     setLlmApiKey(savedKey)
     localStorage.setItem('cqa_llm_provider', id)
     localStorage.setItem('cqa_llm_model', cfg.models[0].id)

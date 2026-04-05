@@ -8,6 +8,7 @@ from app.session_store import SessionData
 from app.services import github_client, gitlab_client, bitbucket_client
 from app.services.framework_detector import detect_frameworks
 from app.services.claude_analyzer import analyze_files
+from app.services.llm_recommender import recommend_llms
 
 router = APIRouter(prefix="/api/scan", tags=["scan"])
 
@@ -52,9 +53,12 @@ async def detect_frameworks_endpoint(
     session.file_tree = file_tree
     session.detected_frameworks = [f.__dict__ for f in frameworks]
 
+    recommendations = recommend_llms([f["id"] for f in session.detected_frameworks])
+
     return {
         "detected_frameworks": session.detected_frameworks,
         "file_count": len(file_tree),
+        "llm_recommendations": recommendations,
     }
 
 

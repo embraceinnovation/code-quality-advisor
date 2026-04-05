@@ -160,11 +160,12 @@ export default function Step3_Scan({ repo, onBack, onContinue }) {
   const [detected, setDetected] = useState([])
   const [fileCount, setFileCount] = useState(0)
   const [selected, setSelected] = useState(new Set())
+  const [recommendations, setRecommendations] = useState([])
 
-  // LLM selection state — persisted to localStorage so it survives page refreshes
+  // LLM selection — provider + model persisted globally; keys stored per-provider
   const [llmProvider, setLlmProvider] = useState(() => localStorage.getItem('cqa_llm_provider') || 'groq')
   const [llmModel, setLlmModel] = useState(() => localStorage.getItem('cqa_llm_model') || 'llama-3.3-70b-versatile')
-  const [llmApiKey, setLlmApiKey] = useState(() => localStorage.getItem('cqa_llm_key') || '')
+  const [llmApiKey, setLlmApiKey] = useState(() => localStorage.getItem(`cqa_llm_key_${localStorage.getItem('cqa_llm_provider') || 'groq'}`) || '')
   const [showKey, setShowKey] = useState(false)
 
   const providerConfig = LLM_PROVIDERS.find((p) => p.id === llmProvider)
@@ -173,10 +174,11 @@ export default function Step3_Scan({ repo, onBack, onContinue }) {
     const cfg = LLM_PROVIDERS.find((p) => p.id === id)
     setLlmProvider(id)
     setLlmModel(cfg.models[0].id)
-    setLlmApiKey('')
+    // Restore saved key for this provider (may be empty)
+    const savedKey = localStorage.getItem(`cqa_llm_key_${id}`) || ''
+    setLlmApiKey(savedKey)
     localStorage.setItem('cqa_llm_provider', id)
     localStorage.setItem('cqa_llm_model', cfg.models[0].id)
-    localStorage.removeItem('cqa_llm_key')
   }
 
   const handleModelChange = (model) => {
@@ -186,7 +188,8 @@ export default function Step3_Scan({ repo, onBack, onContinue }) {
 
   const handleKeyChange = (key) => {
     setLlmApiKey(key)
-    localStorage.setItem('cqa_llm_key', key)
+    // Store per-provider so switching back restores the key
+    localStorage.setItem(`cqa_llm_key_${llmProvider}`, key)
   }
 
   const canStart = !providerConfig?.keyRequired || llmApiKey.trim().length > 0
@@ -197,6 +200,7 @@ export default function Step3_Scan({ repo, onBack, onContinue }) {
         setDetected(d.detected_frameworks)
         setFileCount(d.file_count)
         setSelected(new Set(d.detected_frameworks.map((f) => f.id)))
+        setRecommendations(d.llm_recommendations || [])
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false))
@@ -289,6 +293,34 @@ export default function Step3_Scan({ repo, onBack, onContinue }) {
         </div>
 
         <div className="flex-1 min-h-0 overflow-y-auto space-y-4 pr-1">
+
+          {/* Recommendations */}
+          {recommendations.length > 0 && (
+            <div className="card p-3 space-y-2">
+              <p className="text-xs font-semibold text-brand-600 uppercase tracking-wider">Recommended for your stack</p>
+              {recommendations.map((rec, i) => (
+                <button
+                  key={rec.provider}
+                  onClick={() => handleProviderChange(rec.provider)}
+                  className={`w-full text-left rounded-lg border px-3 py-2 transition-all space-y-0.5
+                    ${llmProvider === rec.provider
+                      ? 'bg-brand-50 border-brand-400'
+                      : 'bg-gray-50 border-gray-200 hover:border-brand-300'}`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className={`text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0
+                      ${i === 0 ? 'bg-amber-400 text-white' : i === 1 ? 'bg-gray-400 text-white' : 'bg-orange-300 text-white'}`}>
+                      {i + 1}
+                    </span>
+                    <span className="text-sm font-semibold text-gray-900">{rec.display}</span>
+                    <span className="ml-auto text-xs font-bold text-brand-600">{rec.score.toFixed(1)}</span>
+                  </div>
+                  <p className="text-xs text-gray-500 leading-snug pl-7">{rec.reason}</p>
+                </button>
+              ))}
+            </div>
+          )}
+
           <div>
             <p className="text-xs font-semibold text-green-600 uppercase tracking-wider mb-2">Free Tier</p>
             <div className="grid grid-cols-2 gap-2 mb-3">

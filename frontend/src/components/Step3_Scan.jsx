@@ -390,7 +390,7 @@ export default function Step3_Scan({ repo, onBack, onContinue }) {
   )
 }
 
-function ProviderButton({ p, selected, onClick }) {
+function ProviderButton({ p, selected, onClick, showBadge = false }) {
   return (
     <button
       onClick={onClick}
@@ -398,7 +398,7 @@ function ProviderButton({ p, selected, onClick }) {
         ${selected ? 'bg-blue-50 border-blue-400 text-blue-700' : 'bg-gray-50 border-gray-200 text-gray-600 hover:border-gray-300'}`}
     >
       <div>{p.name}</div>
-      <div className={`text-xs px-1.5 py-0.5 rounded-full inline-block ${p.badgeStyle}`}>{p.badge}</div>
+      {showBadge && <div className={`text-xs px-1.5 py-0.5 rounded-full inline-block ${p.badgeStyle}`}>{p.badge}</div>}
     </button>
   )
 }

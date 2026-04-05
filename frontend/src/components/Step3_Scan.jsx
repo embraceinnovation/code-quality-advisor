@@ -235,7 +235,7 @@ export default function Step3_Scan({ repo, onBack, onContinue }) {
   }, {})
 
   return (
-    <div className="grid grid-cols-[1fr_340px] gap-5 h-full">
+    <div className="grid grid-cols-2 gap-5 h-full">
 
       {/* ── Left: detected frameworks ────────────────────────────────────── */}
       <div className="flex flex-col min-h-0">

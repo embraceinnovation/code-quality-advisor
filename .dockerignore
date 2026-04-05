@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Frontend source — only the build output is needed in the image
+frontend/node_modules/
+
+# Already built into image via frontend-builder stage
+static/
+
+# Environment — never bake secrets into the image
+.env
+.env.*
+
+# Git / IDE
+.git/
+.gitignore
+.vscode/
+.idea/
+
+# Vercel
+.vercel/

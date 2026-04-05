@@ -292,17 +292,17 @@ export default function Step3_Scan({ repo, onBack, onContinue }) {
           <p className="text-gray-500 text-sm mt-0.5">Choose what analyzes your code.</p>
         </div>
 
-        <div className="flex-1 min-h-0 overflow-y-auto space-y-4 pr-1">
+        <div className="flex-1 min-h-0 overflow-y-auto space-y-3 pr-1">
 
           {/* Recommendations */}
           {recommendations.length > 0 && (
-            <div className="card p-3 space-y-2">
+            <div className="card p-2.5 space-y-1.5">
               <p className="text-xs font-semibold text-brand-600 uppercase tracking-wider">Recommended for your stack</p>
               {recommendations.map((rec, i) => (
                 <button
                   key={rec.provider}
                   onClick={() => handleProviderChange(rec.provider)}
-                  className={`w-full text-left rounded-lg border px-3 py-2 transition-all space-y-0.5
+                  className={`w-full text-left rounded-lg border px-2.5 py-1.5 transition-all space-y-0.5
                     ${llmProvider === rec.provider
                       ? 'bg-brand-50 border-brand-400'
                       : 'bg-gray-50 border-gray-200 hover:border-brand-300'}`}
@@ -323,7 +323,7 @@ export default function Step3_Scan({ repo, onBack, onContinue }) {
 
           <div>
             <p className="text-xs font-semibold text-green-600 uppercase tracking-wider mb-2">Free Tier</p>
-            <div className="grid grid-cols-2 gap-2 mb-3">
+            <div className="grid grid-cols-4 gap-2 mb-3">
               {LLM_PROVIDERS.filter((p) => p.badge === 'Free tier').map((p) => (
                 <ProviderButton key={p.id} p={p} selected={llmProvider === p.id} onClick={() => handleProviderChange(p.id)} />
               ))}
@@ -335,7 +335,7 @@ export default function Step3_Scan({ repo, onBack, onContinue }) {
               ))}
             </div>
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Paid</p>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-3 gap-2 mb-0">
               {LLM_PROVIDERS.filter((p) => p.badge === 'Paid').map((p) => (
                 <ProviderButton key={p.id} p={p} selected={llmProvider === p.id} onClick={() => handleProviderChange(p.id)} />
               ))}

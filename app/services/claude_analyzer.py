@@ -307,11 +307,11 @@ async def analyze_files(
                 return {"event": "error", "file": path, "message": str(e)}
 
     tasks = [asyncio.create_task(analyze_one(f)) for f in analyzable]
-    for task in asyncio.as_completed(tasks):
-        # Drain any rate-limit notifications before yielding the next result
+    for coro in asyncio.as_completed(tasks):
+        # Drain any queued rate-limit notifications before yielding the next result
         while not notify_queue.empty():
             yield notify_queue.get_nowait()
-        result = await task
+        result = await coro
         while not notify_queue.empty():
             yield notify_queue.get_nowait()
         yield result

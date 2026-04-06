@@ -2,6 +2,13 @@
   "version": 2,
   "builds": [
     {
+      "src": "frontend/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
+    },
+    {
       "src": "api/index.py",
       "use": "@vercel/python",
       "config": {
@@ -10,10 +17,9 @@
     }
   ],
   "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/api/index.py"
-    }
+    { "src": "/api/(.*)", "dest": "/api/index.py" },
+    { "handle": "filesystem" },
+    { "src": "/(.*)", "dest": "/index.html" }
   ],
   "env": {
     "GIT_CLONE_BASE_DIR": "/tmp/cqa"

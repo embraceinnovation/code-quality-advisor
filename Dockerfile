@@ -6,7 +6,7 @@ COPY frontend/package*.json ./
 RUN npm ci
 COPY frontend/ ./
 RUN npm run build
-# Output lands in /app/static (vite.config.js outDir: '../static')
+# Output lands in /app/frontend/dist (vite.config.js outDir: 'dist')
 
 
 # ── Stage 2: Production image ─────────────────────────────────────────────────
@@ -26,7 +26,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY app/ ./app/
 
 # Copy built frontend from stage 1
-COPY --from=frontend-builder /app/static ./static/
+COPY --from=frontend-builder /app/frontend/dist ./static/
 
 # Copy supporting files
 COPY Procfile ./

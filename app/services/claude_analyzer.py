@@ -194,19 +194,29 @@ async def _call_llm(
         raise ValueError(f"Unknown LLM provider: {provider}")
 
 
-# Concurrency limits per provider — free tiers have low RPM ceilings
+# Concurrency limits per provider — free tiers have low RPM/TPM ceilings
 _PROVIDER_CONCURRENCY = {
-    "groq":     2,   # 30 RPM free tier — keep well under
-    "cerebras": 2,   # similar free tier constraints
+    "groq":     2,   # 30 RPM free tier
+    "cerebras": 2,
     "mistral":  2,
-    "deepseek": 3,
-    "together": 3,
+    "deepseek": 2,
+    "together": 2,
     "ollama":   2,   # local CPU/GPU — don't overwhelm
-    "google":   4,
-    "openai":   5,
-    "anthropic": 5,
+    "google":   3,
+    "openai":   3,
+    "anthropic": 2,  # TPM-sensitive even with credits
 }
-_DEFAULT_CONCURRENCY = 3
+_DEFAULT_CONCURRENCY = 2
+
+# Max tokens for analysis responses — JSON issue arrays are compact;
+# high values burn TPM quota without benefit
+_ANALYSIS_MAX_TOKENS = 1024
+
+# Small stagger between requests for rate-sensitive providers (seconds)
+_PROVIDER_REQUEST_DELAY = {
+    "groq": 0.5, "cerebras": 0.5, "mistral": 0.5,
+    "deepseek": 0.3, "together": 0.3, "anthropic": 0.5,
+}
 
 
 def _extract_retry_after(exc: Exception) -> float:
@@ -237,7 +247,7 @@ async def analyze_files(
 
     model = session.llm_model
     api_key = session.llm_api_key or settings.anthropic_api_key
-    max_tokens = settings.claude_max_tokens
+    request_delay = _PROVIDER_REQUEST_DELAY.get(provider, 0)
 
     analyzable = [f for f in files if _should_analyze(f, size_limit)]
     frameworks_str = ", ".join(frameworks) if frameworks else "general"
@@ -271,9 +281,12 @@ async def analyze_files(
                     f"```{lang.lower().split()[0]}\n{content}\n```"
                 )
 
+                if request_delay:
+                    await asyncio.sleep(request_delay)
+
                 for attempt in range(5):
                     try:
-                        raw = await _call_llm(provider, model, api_key, _ANALYSIS_SYSTEM_PROMPT, user_msg, max_tokens)
+                        raw = await _call_llm(provider, model, api_key, _ANALYSIS_SYSTEM_PROMPT, user_msg, _ANALYSIS_MAX_TOKENS)
                         issues = json.loads(raw.strip())
                         changes = [
                             {

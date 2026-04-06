@@ -8,3 +8,5 @@ cryptography
 anthropic
 openai
 google-generativeai
+markdown
+weasyprint

@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import ReactMarkdown from 'react-markdown'
-import { generateReport, downloadReport } from '../api.js'
+import { generateReport, downloadReport, downloadReportPdf } from '../api.js'
 
 export default function Step7_Report({ repo, pushUrl, onNewRepo }) {
   const [loading, setLoading] = useState(false)
+  const [pdfLoading, setPdfLoading] = useState(false)
   const [markdown, setMarkdown] = useState(null)
   const [error, setError] = useState(null)
 
@@ -31,6 +32,24 @@ export default function Step7_Report({ repo, pushUrl, onNewRepo }) {
       URL.revokeObjectURL(url)
     } catch (e) {
       setError(e.message)
+    }
+  }
+
+  const handleDownloadPdf = async () => {
+    setPdfLoading(true)
+    setError(null)
+    try {
+      const blob = await downloadReportPdf()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `cqa-report-${repo?.name || 'project'}.pdf`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setPdfLoading(false)
     }
   }
 
@@ -81,14 +100,23 @@ export default function Step7_Report({ repo, pushUrl, onNewRepo }) {
 
       {markdown && (
         <div className="space-y-3">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-3">
             <h3 className="font-semibold text-gray-900">Your Improvement Guide</h3>
-            <button
-              onClick={handleDownload}
-              className="bg-gray-900 hover:bg-gray-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
-            >
-              ⬇ Download .md
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={handleDownload}
+                className="bg-gray-700 hover:bg-gray-900 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
+              >
+                ⬇ Markdown
+              </button>
+              <button
+                onClick={handleDownloadPdf}
+                disabled={pdfLoading}
+                className="bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
+              >
+                {pdfLoading ? '⏳ Generating…' : '⬇ PDF'}
+              </button>
+            </div>
           </div>
           <div className="bg-white border border-gray-200 rounded-xl p-6 prose prose-sm max-w-none">
             <ReactMarkdown>{markdown}</ReactMarkdown>

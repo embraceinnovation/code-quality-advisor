@@ -118,3 +118,9 @@ export const generateReport = () =>
 
 export const downloadReport = () =>
   fetch(BASE + '/report/download', OPTS).then((res) => res.blob())
+
+export const downloadReportPdf = () =>
+  fetch(BASE + '/report/download-pdf', OPTS).then((res) => {
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    return res.blob()
+  })

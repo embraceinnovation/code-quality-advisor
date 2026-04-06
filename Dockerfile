@@ -14,7 +14,15 @@ FROM python:3.11-slim
 
 # Install git — required for gitpython if re-added; harmless if not
 # Keeps the image useful for future local-git scenarios
-RUN apt-get update && apt-get install -y --no-install-recommends git && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    libpango-1.0-0 libpangoft2-1.0-0 libpangocairo-1.0-0 \
+    libcairo2 libcairo-gobject2 \
+    libgdk-pixbuf-2.0-0 \
+    libffi-dev \
+    shared-mime-info \
+    fonts-liberation \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 

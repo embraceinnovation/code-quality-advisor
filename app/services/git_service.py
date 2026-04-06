@@ -4,7 +4,7 @@ Works on serverless (Vercel) and traditional servers alike.
 """
 import base64
 import logging
-from datetime import date
+from datetime import datetime, timezone
 
 import httpx
 
@@ -33,7 +33,7 @@ async def prepare_branch(
     Fetches file content from the provider API, applies LLM fixes in memory,
     then creates a new branch + commit via the provider API.
     """
-    branch = branch_name or f"cqa/improvements-{date.today().isoformat()}"
+    branch = branch_name or f"cqa/improvements-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}"
     total = len(selected_changes)
 
     # Group changes by file

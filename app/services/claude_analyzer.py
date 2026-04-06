@@ -256,6 +256,14 @@ async def analyze_files(
                     return {"event": "progress", "file": path, "changes": []}
 
                 lang = _language_from_path(path)
+                # Groq and other providers with small context windows: truncate content
+                _CHAR_LIMITS = {
+                    "groq": 12000, "cerebras": 12000, "mistral": 16000,
+                    "deepseek": 24000, "together": 16000,
+                }
+                char_limit = _CHAR_LIMITS.get(provider)
+                if char_limit and len(content) > char_limit:
+                    content = content[:char_limit] + "\n\n# ... [truncated for length]"
                 user_msg = (
                     f"Framework context: {frameworks_str}\n"
                     f"File: {path}\n"

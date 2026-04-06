@@ -80,6 +80,11 @@ export default function Step4_Analyze({ repo, frameworks, detectedFrameworks = [
         } else if (event.event === 'rate_limit') {
           setRateLimitWait({ wait: event.wait, file: event.file, countdown: event.wait })
           addLog({ type: 'ratelimit', message: `Rate limit hit — pausing ${event.wait}s before retrying ${event.file.split('/').pop()}` })
+        } else if (event.event === 'scope_info') {
+          addLog({
+            type: event.html_css_included ? 'scope_included' : 'scope_excluded',
+            message: event.message,
+          })
         } else if (event.event === 'rate_limit_clear') {
           setRateLimitWait(null)
           addLog({ type: 'info', message: 'Rate limit cleared — resuming analysis' })
@@ -208,25 +213,30 @@ export default function Step4_Analyze({ repo, frameworks, detectedFrameworks = [
 
 function LogLine({ entry }) {
   const styles = {
-    ok:        'text-gray-500',
-    issues:    'text-blue-700 font-semibold',
-    ratelimit: 'text-orange-600 font-semibold',
-    info:      'text-gray-400',
-    done:      'text-green-600 font-semibold',
-    error:     'text-red-500',
+    ok:              'text-gray-500',
+    issues:          'text-blue-700 font-semibold',
+    ratelimit:       'text-orange-600 font-semibold',
+    info:            'text-gray-400',
+    done:            'text-green-600 font-semibold',
+    error:           'text-red-500',
+    scope_excluded:  'text-amber-700',
+    scope_included:  'text-teal-700',
   }
   const icons = {
-    ok:        '✓',
-    issues:    '⚠',
-    ratelimit: '⏸',
-    info:      '·',
-    done:      '✓',
-    error:     '✗',
+    ok:              '✓',
+    issues:          '⚠',
+    ratelimit:       '⏸',
+    info:            '·',
+    done:            '✓',
+    error:           '✗',
+    scope_excluded:  'ℹ',
+    scope_included:  'ℹ',
   }
+  const wrap = entry.type === 'scope_excluded' || entry.type === 'scope_included'
   return (
     <div className={`flex gap-2 leading-5 ${styles[entry.type] || 'text-gray-400'}`}>
       <span className="w-3 shrink-0 text-center">{icons[entry.type] || '·'}</span>
-      <span className="truncate">
+      <span className={wrap ? 'whitespace-normal' : 'truncate'}>
         {entry.message}
         {entry.count != null && (
           <span className="ml-1 text-blue-500">({entry.count} issue{entry.count !== 1 ? 's' : ''})</span>

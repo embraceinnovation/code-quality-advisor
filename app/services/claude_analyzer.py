@@ -9,17 +9,25 @@ from app.session_store import SessionData
 
 logger = logging.getLogger(__name__)
 
-# File extensions considered analyzable
+# File extensions considered analyzable (base set — no HTML/CSS by default)
 _ANALYZABLE_EXTENSIONS = {
     # Salesforce
     ".cls", ".trigger", ".page", ".component", ".cmp", ".evt", ".app",
-    # Web
-    ".js", ".ts", ".jsx", ".tsx", ".vue", ".html", ".css", ".scss",
+    # Web (logic-bearing only)
+    ".js", ".ts", ".jsx", ".tsx", ".vue",
     # Backend
     ".py", ".java", ".rb", ".php", ".go", ".rs", ".cs", ".kt", ".swift",
     # Config / build (light analysis only)
     ".json", ".yaml", ".yml", ".toml",
 }
+
+# HTML/CSS included only when these frameworks are active — they have
+# meaningful template logic or component styles worth reviewing
+_HTML_CSS_FRAMEWORKS = {
+    "salesforce_lwc", "salesforce_aura", "salesforce_visualforce",
+    "vue", "angular", "nextjs", "react",
+}
+_HTML_CSS_EXTENSIONS = {".html", ".css", ".scss"}
 
 _SKIP_PATHS = {
     "node_modules", "dist", "build", "__pycache__", ".git",
@@ -32,9 +40,10 @@ _SKIP_FILENAMES = {
 }
 
 
-def _should_analyze(file: dict, size_limit_kb: int) -> bool:
+def _should_analyze(file: dict, size_limit_kb: int, extensions: set = None) -> bool:
     path = file.get("path", "")
     filename = path.split("/")[-1]
+    exts = extensions if extensions is not None else _ANALYZABLE_EXTENSIONS
 
     if filename in _SKIP_FILENAMES:
         return False
@@ -42,7 +51,7 @@ def _should_analyze(file: dict, size_limit_kb: int) -> bool:
         return False
     if filename.endswith(".min.js") or filename.endswith(".bundle.js"):
         return False
-    if not any(path.endswith(ext) for ext in _ANALYZABLE_EXTENSIONS):
+    if not any(path.endswith(ext) for ext in exts):
         return False
     if file.get("size", 0) > size_limit_kb * 1024:
         return False
@@ -249,8 +258,30 @@ async def analyze_files(
     api_key = session.llm_api_key or settings.anthropic_api_key
     request_delay = _PROVIDER_REQUEST_DELAY.get(provider, 0)
 
-    analyzable = [f for f in files if _should_analyze(f, size_limit)]
+    # Decide whether to include HTML/CSS based on selected frameworks
+    active_html_css_frameworks = _HTML_CSS_FRAMEWORKS & set(frameworks)
+    effective_extensions = _ANALYZABLE_EXTENSIONS | (_HTML_CSS_EXTENSIONS if active_html_css_frameworks else set())
+
+    analyzable = [f for f in files if _should_analyze(f, size_limit, effective_extensions)]
     frameworks_str = ", ".join(frameworks) if frameworks else "general"
+
+    # Build HTML/CSS scope messaging
+    if active_html_css_frameworks:
+        fw_names = [fw.replace("salesforce_", "").replace("_", " ").title() for fw in active_html_css_frameworks]
+        html_css_message = (
+            f"HTML, CSS, and SCSS files are included because your selected frameworks "
+            f"({', '.join(fw_names)}) use templates and component styles that contain "
+            f"meaningful logic worth reviewing (e.g. accessibility, LWC template patterns, bindings)."
+        )
+        html_css_included = True
+    else:
+        html_css_message = (
+            "HTML, CSS, and SCSS files are excluded from this scan. For most projects these "
+            "file types produce low-signal results from an AI reviewer — a dedicated linter "
+            "(axe for accessibility, stylelint for CSS) will catch issues more reliably. "
+            "Select a frontend framework (React, Vue, Angular, LWC) to enable template analysis."
+        )
+        html_css_included = False
 
     # Queue lets worker tasks push rate-limit notifications to the generator
     notify_queue: asyncio.Queue = asyncio.Queue()
@@ -326,6 +357,13 @@ async def analyze_files(
             except Exception as e:
                 logger.error(f"Error analyzing {path}: {e}")
                 return {"event": "error", "file": path, "message": str(e)}
+
+    # Emit HTML/CSS scope decision before any file results
+    yield {
+        "event": "scope_info",
+        "html_css_included": html_css_included,
+        "message": html_css_message,
+    }
 
     tasks = [asyncio.create_task(analyze_one(f)) for f in analyzable]
     for coro in asyncio.as_completed(tasks):

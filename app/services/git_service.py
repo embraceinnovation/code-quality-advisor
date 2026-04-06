@@ -286,16 +286,40 @@ async def _bitbucket_commit(
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def _stat_from_diff(diff_text: str, fixed_files: dict) -> str:
-    """Extract git diff --stat-style lines from a unified diff."""
-    if diff_text:
-        stat_lines = [l for l in diff_text.split("\n") if " | " in l]
-        if stat_lines:
-            return "\n".join(stat_lines)
-    return _stat_summary(fixed_files)
+    """Build a git diff --stat-style summary from a unified diff."""
+    if not diff_text:
+        return _stat_summary(fixed_files)
+
+    # Parse additions/deletions per file from unified diff
+    current_file = None
+    adds: dict[str, int] = {}
+    dels: dict[str, int] = {}
+    for line in diff_text.split("\n"):
+        if line.startswith("diff --git "):
+            m = __import__("re").search(r"diff --git a/.+ b/(.+)", line)
+            current_file = m.group(1) if m else None
+            if current_file:
+                adds.setdefault(current_file, 0)
+                dels.setdefault(current_file, 0)
+        elif current_file:
+            if line.startswith("+") and not line.startswith("+++"):
+                adds[current_file] += 1
+            elif line.startswith("-") and not line.startswith("---"):
+                dels[current_file] += 1
+
+    if not adds:
+        return _stat_summary(fixed_files)
+
+    stat_lines = []
+    for path in adds:
+        a, d = adds[path], dels[path]
+        bar = "+" * min(a, 20) + "-" * min(d, 20)
+        stat_lines.append(f" {path} | {a + d} {bar}")
+    return "\n".join(stat_lines)
 
 
 def _stat_summary(fixed_files: dict) -> str:
-    return "\n".join(f" {path} | modified" for path in fixed_files)
+    return "\n".join(f" {path} | 1 +" for path in fixed_files)
 
 
 async def get_diff(session: SessionData) -> str:

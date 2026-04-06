@@ -17,5 +17,10 @@
   ],
   "env": {
     "GIT_CLONE_BASE_DIR": "/tmp/cqa"
+  },
+  "functions": {
+    "api/index.py": {
+      "maxDuration": 60
+    }
   }
 }

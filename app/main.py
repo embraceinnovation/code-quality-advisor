@@ -46,7 +46,14 @@ app.add_middleware(
 
 @app.get("/health")
 async def health():
-    return {"status": "ok"}
+    import json, os
+    build_file = os.path.join(os.path.dirname(__file__), "..", "build_info.json")
+    try:
+        with open(build_file) as f:
+            build_info = json.load(f)
+    except Exception:
+        build_info = {}
+    return {"status": "ok", **build_info}
 
 
 app.include_router(oauth.router)

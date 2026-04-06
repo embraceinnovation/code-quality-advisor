@@ -30,6 +30,9 @@ WORKDIR /app
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Bake build timestamp into image
+RUN echo "{\"built_at\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > ./build_info.json
+
 # Copy application source
 COPY app/ ./app/
 

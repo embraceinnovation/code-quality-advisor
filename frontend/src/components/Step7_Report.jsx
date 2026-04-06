@@ -21,15 +21,20 @@ export default function Step7_Report({ repo, pushUrl, onNewRepo }) {
     }
   }
 
+  const triggerDownload = (blob, filename) => {
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    a.click()
+    URL.revokeObjectURL(url)
+    setTimeout(onNewRepo, 1500)
+  }
+
   const handleDownload = async () => {
     try {
       const blob = await downloadReport()
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `cqa-report-${repo?.name || 'project'}.md`
-      a.click()
-      URL.revokeObjectURL(url)
+      triggerDownload(blob, `cqa-report-${repo?.name || 'project'}.md`)
     } catch (e) {
       setError(e.message)
     }
@@ -40,12 +45,7 @@ export default function Step7_Report({ repo, pushUrl, onNewRepo }) {
     setError(null)
     try {
       const blob = await downloadReportPdf()
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `cqa-report-${repo?.name || 'project'}.pdf`
-      a.click()
-      URL.revokeObjectURL(url)
+      triggerDownload(blob, `cqa-report-${repo?.name || 'project'}.pdf`)
     } catch (e) {
       setError(e.message)
     } finally {

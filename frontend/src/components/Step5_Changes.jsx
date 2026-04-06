@@ -253,7 +253,7 @@ export default function Step5_Changes({ changes, selectedIds, onSelectionChange,
 
           <input
             type="text"
-            placeholder={`cqa/improvements-${new Date().toISOString().slice(0,10)}`}
+            placeholder={`cqa/improvements-${new Date().toISOString().replace(/[-:]/g,'').replace('T','-').slice(0,15)}`}
             value={branchName}
             onChange={(e) => setBranchName(e.target.value)}
             disabled={packaging}

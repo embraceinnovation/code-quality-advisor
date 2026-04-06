@@ -1,3 +1,4 @@
+import asyncio
 import json
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
@@ -81,7 +82,22 @@ async def analyze_endpoint(
         total = len(files)
         done = 0
 
+        # Emit a start event immediately so client knows the stream is alive
+        yield f"data: {json.dumps({'event': 'start', 'total': total, 'provider': body.llm_provider, 'model': body.llm_model})}\n\n"
+
+        # Keepalive task — sends a comment every 15s to prevent proxy/platform timeouts
+        async def keepalive(queue: asyncio.Queue):
+            while True:
+                await asyncio.sleep(15)
+                await queue.put(": keepalive\n\n")
+
+        ka_queue: asyncio.Queue = asyncio.Queue()
+        ka_task = asyncio.create_task(keepalive(ka_queue))
+
         async for result in analyze_files(client=client, session=session, files=files, frameworks=body.frameworks):
+            # Flush any keepalive pings before each result
+            while not ka_queue.empty():
+                yield ka_queue.get_nowait()
             if result["event"] == "progress":
                 done += 1
                 changes_acc.extend(result.get("changes", []))
@@ -107,6 +123,7 @@ async def analyze_endpoint(
                 payload = json.dumps({"event": "error", "file": result["file"], "message": result["message"]})
                 yield f"data: {payload}\n\n"
 
+        ka_task.cancel()
         session.changes = changes_acc
         yield f"data: {json.dumps({'event': 'complete', 'total_changes': len(changes_acc)})}\n\n"
 

@@ -36,7 +36,10 @@ export default function Step4_Analyze({ repo, frameworks, detectedFrameworks = [
       100,
       llm,
       (event) => {
-        if (event.event === 'progress') {
+        if (event.event === 'start') {
+          setTotal(event.total)
+          setStatus('running')
+        } else if (event.event === 'progress') {
           setCurrentFile(event.file)
           setDone(event.done)
           setTotal(event.total)

@@ -352,7 +352,8 @@ async def analyze_files(
                             or "invalid_api_key" in msg.lower()
                             or "invalid api key" in msg.lower()
                             or "api key not valid" in msg.lower()
-                            or ("400" in msg and "key" in msg.lower())
+                            or "authentication_error" in msg.lower()
+                            or "permission_error" in msg.lower()
                         ):
                             await notify_queue.put({"event": "auth_error", "provider": provider})
                             raise _AuthError(provider)

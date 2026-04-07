@@ -21,6 +21,7 @@ export default function Step4_Analyze({ repo, frameworks, detectedFrameworks = [
   const [error, setError] = useState(null)
   const [rateLimitWait, setRateLimitWait] = useState(null) // { wait, file, countdown }
   const [activityLog, setActivityLog] = useState([])
+  const [authError, setAuthError] = useState(null) // null | { provider }
   const allChanges = useRef([])
   const abortRef = useRef(null)
   const logRef = useRef(null)
@@ -81,9 +82,8 @@ export default function Step4_Analyze({ repo, frameworks, detectedFrameworks = [
           setRateLimitWait({ wait: event.wait, file: event.file, countdown: event.wait })
           addLog({ type: 'ratelimit', message: `Rate limit hit — pausing ${event.wait}s before retrying ${event.file.split('/').pop()}` })
         } else if (event.event === 'auth_error') {
-          setError(`Invalid API key for ${event.provider}. Please go back and enter a valid key.`)
+          setAuthError({ provider: event.provider })
           setStatus('error')
-          addLog({ type: 'error', message: `Invalid API key — analysis stopped. Go back and check your ${event.provider} API key.` })
         } else if (event.event === 'scope_info') {
           addLog({
             type: event.html_css_included ? 'scope_included' : 'scope_excluded',
@@ -207,10 +207,35 @@ export default function Step4_Analyze({ repo, frameworks, detectedFrameworks = [
             Review {issuesFound} issue{issuesFound !== 1 ? 's' : ''} →
           </button>
         )}
-        {status === 'error' && (
+        {status === 'error' && !authError && (
           <button onClick={handleBack} className="btn btn-ghost flex-1">← Change settings and retry</button>
         )}
       </div>
+
+      {/* Auth error modal */}
+      {authError && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4 text-center space-y-5">
+            <div className="text-5xl">🔑</div>
+            <div>
+              <h2 className="text-xl font-bold text-gray-900 mb-2">Invalid API Key</h2>
+              <p className="text-gray-500 text-sm leading-relaxed">
+                The <span className="font-semibold text-gray-700 capitalize">{authError.provider}</span> API key you entered was rejected.
+                Analysis has been stopped.
+              </p>
+              <p className="text-gray-400 text-xs mt-2">
+                Please go back and check that your key is correct and has not expired.
+              </p>
+            </div>
+            <button
+              onClick={handleBack}
+              className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl transition-colors"
+            >
+              ← Go Back and Fix API Key
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

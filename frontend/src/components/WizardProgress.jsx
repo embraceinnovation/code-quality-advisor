@@ -5,7 +5,7 @@ const STEPS = [
   { n: 4, label: 'Analyze' },
   { n: 5, label: 'Review' },
   { n: 6, label: 'Validate' },
-  { n: 7, label: 'Push Branch' },
+  { n: 7, label: 'Create Branch' },
   { n: 8, label: 'Report' },
 ]
 

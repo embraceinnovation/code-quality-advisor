@@ -141,9 +141,9 @@ export default function Step6_Review({ selectedIds, branchName, onBack, onPushed
       {/* ── Left: file list + push action ───────────────────────────────── */}
       <div className="flex flex-col min-h-0 gap-4">
         <div>
-          <h2 className="text-xl font-bold text-gray-900">Review &amp; Push</h2>
+          <h2 className="text-xl font-bold text-gray-900">Review &amp; Create Branch</h2>
           <p className="text-gray-500 text-sm mt-0.5">
-            Branch: <span className="font-mono text-brand-600 text-xs">{pendingBranch.branch_name}</span>
+            New branch: <span className="font-mono text-brand-600 text-xs">{pendingBranch.branch_name}</span>
           </p>
         </div>
 
@@ -185,7 +185,7 @@ export default function Step6_Review({ selectedIds, branchName, onBack, onPushed
 
         <div className="space-y-2">
           <button onClick={handlePush} disabled={pushing} className="btn btn-success w-full py-3">
-            {pushing ? 'Pushing…' : '🚀 Push to Origin'}
+            {pushing ? 'Creating branch…' : '🌿 Create Branch on Origin'}
           </button>
           <button onClick={onBack} disabled={pushing} className="btn btn-back w-full">← Back</button>
         </div>

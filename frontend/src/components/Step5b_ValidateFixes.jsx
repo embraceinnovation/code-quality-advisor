@@ -2,10 +2,16 @@ import { useState, useEffect } from 'react'
 import { validateFixes } from '../api.js'
 
 const VERDICT_CONFIG = {
-  safe:   { icon: '✓', label: 'Safe',         dot: 'bg-green-500',  row: 'border-green-200 bg-green-50',  text: 'text-green-700', badge: 'bg-green-100 text-green-700' },
-  risky:  { icon: '⚠', label: 'Needs Review', dot: 'bg-amber-400',  row: 'border-amber-200 bg-amber-50',  text: 'text-amber-700', badge: 'bg-amber-100 text-amber-700' },
-  reject: { icon: '✗', label: 'Reject',       dot: 'bg-red-500',    row: 'border-red-200 bg-red-50',      text: 'text-red-700',   badge: 'bg-red-100 text-red-700' },
-  pending:{ icon: '·', label: 'Validating…',  dot: 'bg-gray-300',   row: 'border-gray-200 bg-white',      text: 'text-gray-400',  badge: 'bg-gray-100 text-gray-500' },
+  safe:   { icon: '✓', label: 'Approved',      dot: 'bg-green-500',  row: 'border-green-200 bg-green-50',  text: 'text-green-700', badge: 'bg-green-100 text-green-700' },
+  risky:  { icon: '⚠', label: 'Needs Review',  dot: 'bg-amber-400',  row: 'border-amber-200 bg-amber-50',  text: 'text-amber-700', badge: 'bg-amber-100 text-amber-700' },
+  reject: { icon: '✗', label: 'Not Recommended', dot: 'bg-red-500',  row: 'border-red-200 bg-red-50',      text: 'text-red-700',   badge: 'bg-red-100 text-red-700' },
+  pending:{ icon: '·', label: 'Validating…',   dot: 'bg-gray-300',   row: 'border-gray-200 bg-white',      text: 'text-gray-400',  badge: 'bg-gray-100 text-gray-500' },
+}
+
+const VERDICT_EXPLAINER = {
+  safe: 'The AI reviewed this fix and found it to be correct, safe to apply, and consistent with the recommendation.',
+  risky: 'The AI found potential concerns with this fix — it may be correct but warrants a manual review before including it in the branch. You can keep it selected or uncheck it.',
+  reject: 'The AI determined this fix is likely incorrect, incomplete, or could introduce a regression. It has been automatically deselected. You can re-enable it if you disagree.',
 }
 
 export default function Step5b_ValidateFixes({ changes, selectedIds, onBack, onProceed }) {
@@ -16,6 +22,7 @@ export default function Step5b_ValidateFixes({ changes, selectedIds, onBack, onP
   const [done, setDone] = useState(0)
   const [total, setTotal] = useState(0)
   const [error, setError] = useState(null)
+  const [expandedId, setExpandedId] = useState(null)
 
   useEffect(() => {
     setStatus('running')
@@ -25,7 +32,6 @@ export default function Step5b_ValidateFixes({ changes, selectedIds, onBack, onP
       } else if (event.event === 'result') {
         setVerdicts((prev) => ({ ...prev, [event.id]: { verdict: event.verdict, reason: event.reason } }))
         setDone((d) => d + 1)
-        // Auto-deselect rejected fixes
         if (event.verdict === 'reject') {
           setApproved((prev) => { const next = new Set(prev); next.delete(event.id); return next })
         }
@@ -53,11 +59,33 @@ export default function Step5b_ValidateFixes({ changes, selectedIds, onBack, onP
 
   return (
     <div className="flex flex-col h-full gap-4">
+
+      {/* Header */}
       <div>
-        <h2 className="text-xl font-bold text-gray-900">Validate Fixes</h2>
+        <h2 className="text-xl font-bold text-gray-900">AI Fix Validation</h2>
         <p className="text-gray-500 text-sm mt-0.5">
-          AI is reviewing each proposed fix for correctness and safety before applying to your branch.
+          Before creating your branch, the AI reviews each proposed fix for correctness and safety.
         </p>
+      </div>
+
+      {/* What this step does */}
+      <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-xs text-blue-800 space-y-2 leading-relaxed">
+        <p><strong>How this works:</strong> Each selected fix is individually reviewed by the AI against the actual file content. The AI checks whether the proposed change is technically correct and safe to apply.</p>
+        <div className="grid grid-cols-3 gap-3 pt-1">
+          <div className="flex items-start gap-1.5">
+            <span className="mt-0.5 inline-block w-2 h-2 rounded-full bg-green-500 flex-shrink-0" />
+            <span><strong className="text-green-700">Approved</strong> — fix looks correct and safe</span>
+          </div>
+          <div className="flex items-start gap-1.5">
+            <span className="mt-0.5 inline-block w-2 h-2 rounded-full bg-amber-400 flex-shrink-0" />
+            <span><strong className="text-amber-700">Needs Review</strong> — AI has concerns; review before including</span>
+          </div>
+          <div className="flex items-start gap-1.5">
+            <span className="mt-0.5 inline-block w-2 h-2 rounded-full bg-red-500 flex-shrink-0" />
+            <span><strong className="text-red-700">Not Recommended</strong> — AI flagged as incorrect; auto-deselected</span>
+          </div>
+        </div>
+        <p className="pt-0.5 text-blue-700">You remain in full control — you can override any verdict by checking or unchecking fixes below.</p>
       </div>
 
       {/* Progress */}
@@ -71,9 +99,9 @@ export default function Step5b_ValidateFixes({ changes, selectedIds, onBack, onP
         </div>
         {status === 'done' && (
           <div className="flex gap-4 pt-1 text-xs">
-            <span className="text-green-600 font-semibold">✓ {safeCount} safe</span>
+            <span className="text-green-600 font-semibold">✓ {safeCount} approved</span>
             <span className="text-amber-600 font-semibold">⚠ {riskyCount} needs review</span>
-            <span className="text-red-600 font-semibold">✗ {rejectCount} rejected</span>
+            <span className="text-red-600 font-semibold">✗ {rejectCount} not recommended</span>
           </div>
         )}
         {error && <div className="text-red-600 text-sm">Error: {error}</div>}
@@ -86,13 +114,13 @@ export default function Step5b_ValidateFixes({ changes, selectedIds, onBack, onP
           const cfg = v ? VERDICT_CONFIG[v.verdict] || VERDICT_CONFIG.pending : VERDICT_CONFIG.pending
           const isApproved = approved.has(change.id)
           const isPending = !v
+          const isExpanded = expandedId === change.id
 
           return (
             <div
               key={change.id}
               className={`border rounded-xl p-3 flex gap-3 items-start transition-all ${cfg.row} ${isPending ? 'opacity-60' : ''}`}
             >
-              {/* Checkbox — only interactive when validation done */}
               <input
                 type="checkbox"
                 checked={isApproved}
@@ -108,9 +136,34 @@ export default function Step5b_ValidateFixes({ changes, selectedIds, onBack, onP
                   </span>
                   <span className="font-mono text-xs text-gray-500 truncate">{change.file_path.split('/').pop()}:{change.line_number}</span>
                 </div>
-                <p className="text-sm font-medium text-gray-800 truncate">{change.issue}</p>
-                {v?.reason && (
-                  <p className={`text-xs ${cfg.text} leading-snug`}>{v.reason}</p>
+                <p className="text-sm font-medium text-gray-800">{change.issue}</p>
+
+                {/* Verdict rationale */}
+                {v && (
+                  <div className="space-y-1">
+                    {v.reason && (
+                      <p className={`text-xs ${cfg.text} leading-snug`}>
+                        <strong>AI note:</strong> {v.reason}
+                      </p>
+                    )}
+                    <button
+                      onClick={() => setExpandedId(isExpanded ? null : change.id)}
+                      className={`text-xs underline ${cfg.text} opacity-70 hover:opacity-100`}
+                    >
+                      {isExpanded ? 'Hide explanation ▲' : 'What does this mean? ▼'}
+                    </button>
+                    {isExpanded && (
+                      <p className={`text-xs ${cfg.text} bg-white/60 rounded-lg p-2 leading-relaxed`}>
+                        {VERDICT_EXPLAINER[v.verdict]}
+                        {v.verdict === 'reject' && !isApproved && (
+                          <span className="block mt-1 font-semibold">This fix is currently deselected and will not be included in your branch.</span>
+                        )}
+                        {v.verdict === 'risky' && (
+                          <span className="block mt-1 font-semibold">This fix is currently {isApproved ? 'included — uncheck it if you want to exclude it' : 'excluded — check it to include it anyway'}.</span>
+                        )}
+                      </p>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
@@ -118,10 +171,10 @@ export default function Step5b_ValidateFixes({ changes, selectedIds, onBack, onP
         })}
       </div>
 
-      {/* Footer note */}
+      {/* Footer note for rejects */}
       {status === 'done' && rejectCount > 0 && (
         <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-2 text-xs text-red-700">
-          <span className="font-semibold">{rejectCount} fix{rejectCount !== 1 ? 'es' : ''} auto-deselected</span> — the AI flagged these as incorrect or potentially harmful. You can re-enable them manually if you disagree.
+          <span className="font-semibold">{rejectCount} fix{rejectCount !== 1 ? 'es were' : ' was'} automatically deselected</span> because the AI determined {rejectCount !== 1 ? 'they were' : 'it was'} likely incorrect or could introduce a regression. You can re-enable {rejectCount !== 1 ? 'them' : 'it'} by checking the box above if you disagree with the AI assessment.
         </div>
       )}
 
@@ -133,7 +186,7 @@ export default function Step5b_ValidateFixes({ changes, selectedIds, onBack, onP
             disabled={approved.size === 0}
             className="btn btn-primary flex-1 py-3 disabled:opacity-40"
           >
-            Apply {approved.size} fix{approved.size !== 1 ? 'es' : ''} →
+            Create branch with {approved.size} fix{approved.size !== 1 ? 'es' : ''} →
           </button>
         )}
       </div>

@@ -9,9 +9,9 @@ const VERDICT_CONFIG = {
 }
 
 const VERDICT_EXPLAINER = {
-  safe: 'The AI reviewed this fix and found it to be correct, safe to apply, and consistent with the recommendation.',
-  risky: 'The AI found potential concerns with this fix — it may be correct but warrants a manual review before including it in the branch. You can keep it selected or uncheck it.',
-  reject: 'The AI determined this fix is likely incorrect, incomplete, or could introduce a regression. It has been automatically deselected. You can re-enable it if you disagree.',
+  safe: 'The agent reviewed this fix and found it to be correct, safe to apply, and consistent with the recommendation.',
+  risky: 'The agent found potential concerns with this fix — it may be correct but warrants a manual review before including it in the branch. You can keep it selected or uncheck it.',
+  reject: 'The agent determined this fix is likely incorrect, incomplete, or could introduce a regression. It has been automatically deselected. You can re-enable it if you disagree.',
 }
 
 export default function Step5b_ValidateFixes({ changes, selectedIds, onBack, onProceed }) {
@@ -62,15 +62,15 @@ export default function Step5b_ValidateFixes({ changes, selectedIds, onBack, onP
 
       {/* Header */}
       <div>
-        <h2 className="text-xl font-bold text-gray-900">AI Fix Validation</h2>
+        <h2 className="text-xl font-bold text-gray-900">Agent Fix Validation</h2>
         <p className="text-gray-500 text-sm mt-0.5">
-          Before creating your branch, the AI reviews each proposed fix for correctness and safety.
+          Before creating your branch, the agent reviews each proposed fix for correctness and safety.
         </p>
       </div>
 
       {/* What this step does */}
       <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-xs text-blue-800 space-y-2 leading-relaxed">
-        <p><strong>How this works:</strong> Each selected fix is individually reviewed by the AI against the actual file content. The AI checks whether the proposed change is technically correct and safe to apply.</p>
+        <p><strong>How this works:</strong> Each selected fix is individually reviewed by the agent against the actual file content. The agent checks whether the proposed change is technically correct and safe to apply.</p>
         <div className="grid grid-cols-3 gap-3 pt-1">
           <div className="flex items-start gap-1.5">
             <span className="mt-0.5 inline-block w-2 h-2 rounded-full bg-green-500 flex-shrink-0" />
@@ -78,11 +78,11 @@ export default function Step5b_ValidateFixes({ changes, selectedIds, onBack, onP
           </div>
           <div className="flex items-start gap-1.5">
             <span className="mt-0.5 inline-block w-2 h-2 rounded-full bg-amber-400 flex-shrink-0" />
-            <span><strong className="text-amber-700">Needs Review</strong> — AI has concerns; review before including</span>
+            <span><strong className="text-amber-700">Needs Review</strong> — agent has concerns; review before including</span>
           </div>
           <div className="flex items-start gap-1.5">
             <span className="mt-0.5 inline-block w-2 h-2 rounded-full bg-red-500 flex-shrink-0" />
-            <span><strong className="text-red-700">Not Recommended</strong> — AI flagged as incorrect; auto-deselected</span>
+            <span><strong className="text-red-700">Not Recommended</strong> — agent flagged as incorrect; auto-deselected</span>
           </div>
         </div>
         <p className="pt-0.5 text-blue-700">You remain in full control — you can override any verdict by checking or unchecking fixes below.</p>
@@ -143,7 +143,7 @@ export default function Step5b_ValidateFixes({ changes, selectedIds, onBack, onP
                   <div className="space-y-1">
                     {v.reason && (
                       <p className={`text-xs ${cfg.text} leading-snug`}>
-                        <strong>AI note:</strong> {v.reason}
+                        <strong>Agent note:</strong> {v.reason}
                       </p>
                     )}
                     <button
@@ -174,7 +174,7 @@ export default function Step5b_ValidateFixes({ changes, selectedIds, onBack, onP
       {/* Footer note for rejects */}
       {status === 'done' && rejectCount > 0 && (
         <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-2 text-xs text-red-700">
-          <span className="font-semibold">{rejectCount} fix{rejectCount !== 1 ? 'es were' : ' was'} automatically deselected</span> because the AI determined {rejectCount !== 1 ? 'they were' : 'it was'} likely incorrect or could introduce a regression. You can re-enable {rejectCount !== 1 ? 'them' : 'it'} by checking the box above if you disagree with the AI assessment.
+          <span className="font-semibold">{rejectCount} fix{rejectCount !== 1 ? 'es were' : ' was'} automatically deselected</span> because the agent determined {rejectCount !== 1 ? 'they were' : 'it was'} likely incorrect or could introduce a regression. You can re-enable {rejectCount !== 1 ? 'them' : 'it'} by checking the box above if you disagree with the agent's assessment.
         </div>
       )}
 

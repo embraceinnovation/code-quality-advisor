@@ -312,7 +312,7 @@ export default function Step3_Scan({ repo, onBack, onContinue }) {
       {/* ── Right: LLM picker + start button ────────────────────────────── */}
       <div className="flex flex-col min-h-0 gap-4">
         <div>
-          <h2 className="text-xl font-bold text-gray-900">AI Model</h2>
+          <h2 className="text-xl font-bold text-gray-900">Agent Model</h2>
           <p className="text-gray-500 text-sm mt-0.5">Choose what analyzes your code.</p>
         </div>
 

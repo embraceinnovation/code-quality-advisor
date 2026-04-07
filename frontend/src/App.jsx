@@ -59,7 +59,7 @@ export default function App() {
           <span className="text-2xl">🔍</span>
           <div>
             <h1 className="text-lg font-bold text-white tracking-tight">Code Quality Advisor</h1>
-            <p className="text-xs text-blue-200">AI-powered code analysis & improvement</p>
+            <p className="text-xs text-blue-200">Agent-powered code analysis & improvement</p>
           </div>
         </div>
         {state.session && (

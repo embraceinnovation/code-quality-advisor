@@ -183,11 +183,11 @@ export default function Step5_Changes({ changes, selectedIds, onSelectionChange,
                 <p className="text-sm text-gray-800 leading-relaxed">{active.recommendation}</p>
               </div>
 
-              {/* Note about AI applying the fix */}
+              {/* Note about agent applying the fix */}
               <div className="bg-brand-50 border border-brand-100 rounded-xl p-3 text-xs text-brand-700 leading-relaxed">
-                <strong>How this works:</strong> When you package selected changes, the AI will regenerate
+                <strong>How this works:</strong> When you validate selected changes, the agent will regenerate
                 the corrected code for this specific issue and write it directly into the cloned file
-                on a new branch. You can review the full diff before pushing.
+                on a new branch. You can review the full diff before creating the branch.
               </div>
 
               {/* Toggle include/exclude */}

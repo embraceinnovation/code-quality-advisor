@@ -63,7 +63,7 @@ export default function Step4_Analyze({ repo, frameworks, detectedFrameworks = [
         if (event.event === 'start') {
           setTotal(event.total)
           setStatus('running')
-          addLog({ type: 'info', message: `Starting analysis of ${event.total} files using ${event.model || llm?.model || 'AI'}` })
+          addLog({ type: 'info', message: `Starting analysis of ${event.total} files using ${event.model || llm?.model || 'agent'}` })
         } else if (event.event === 'progress') {
           setCurrentFile(event.file)
           setDone(event.done)
@@ -123,7 +123,7 @@ export default function Step4_Analyze({ repo, frameworks, detectedFrameworks = [
       <div>
         <h2 className="text-xl font-bold text-gray-900">Analyzing Your Code</h2>
         <p className="text-gray-500 text-sm mt-0.5">
-          {llm?.model || 'AI'} is reviewing each file for quality, documentation, and engineering completeness.
+          The agent is reviewing each file for quality, documentation, and engineering completeness.
         </p>
       </div>
 

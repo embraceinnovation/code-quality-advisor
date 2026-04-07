@@ -346,7 +346,14 @@ async def analyze_files(
                         await asyncio.sleep(2 ** attempt)
                     except Exception as e:
                         msg = str(e)
-                        if "401" in msg or "invalid_api_key" in msg.lower() or "invalid api key" in msg.lower():
+                        if (
+                            "401" in msg
+                            or "API_KEY_INVALID" in msg
+                            or "invalid_api_key" in msg.lower()
+                            or "invalid api key" in msg.lower()
+                            or "api key not valid" in msg.lower()
+                            or ("400" in msg and "key" in msg.lower())
+                        ):
                             await notify_queue.put({"event": "auth_error", "provider": provider})
                             raise _AuthError(provider)
                         if "429" in msg or "rate" in msg.lower():

@@ -80,6 +80,10 @@ export default function Step4_Analyze({ repo, frameworks, detectedFrameworks = [
         } else if (event.event === 'rate_limit') {
           setRateLimitWait({ wait: event.wait, file: event.file, countdown: event.wait })
           addLog({ type: 'ratelimit', message: `Rate limit hit — pausing ${event.wait}s before retrying ${event.file.split('/').pop()}` })
+        } else if (event.event === 'auth_error') {
+          setError(`Invalid API key for ${event.provider}. Please go back and enter a valid key.`)
+          setStatus('error')
+          addLog({ type: 'error', message: `Invalid API key — analysis stopped. Go back and check your ${event.provider} API key.` })
         } else if (event.event === 'scope_info') {
           addLog({
             type: event.html_css_included ? 'scope_included' : 'scope_excluded',

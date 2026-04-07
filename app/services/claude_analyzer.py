@@ -228,6 +228,12 @@ _PROVIDER_REQUEST_DELAY = {
 }
 
 
+class _AuthError(Exception):
+    def __init__(self, provider: str):
+        self.provider = provider
+        super().__init__(f"Invalid API key for {provider}")
+
+
 def _extract_retry_after(exc: Exception) -> float:
     """Pull retry-after seconds from a 429 exception if available."""
     msg = str(exc)
@@ -339,7 +345,11 @@ async def analyze_files(
                         logger.warning(f"JSON parse failed for {path}, attempt {attempt + 1}")
                         await asyncio.sleep(2 ** attempt)
                     except Exception as e:
-                        if "429" in str(e) or "rate" in str(e).lower():
+                        msg = str(e)
+                        if "401" in msg or "invalid_api_key" in msg.lower() or "invalid api key" in msg.lower():
+                            await notify_queue.put({"event": "auth_error", "provider": provider})
+                            raise _AuthError(provider)
+                        if "429" in msg or "rate" in msg.lower():
                             wait = _extract_retry_after(e)
                             logger.warning(f"Rate limit on {path}, waiting {wait:.0f}s (attempt {attempt + 1})")
                             await notify_queue.put({
@@ -354,6 +364,8 @@ async def analyze_files(
 
                 return {"event": "progress", "file": path, "changes": []}
 
+            except _AuthError:
+                raise
             except Exception as e:
                 logger.error(f"Error analyzing {path}: {e}")
                 return {"event": "error", "file": path, "message": str(e)}
@@ -366,11 +378,25 @@ async def analyze_files(
     }
 
     tasks = [asyncio.create_task(analyze_one(f)) for f in analyzable]
+    auth_failed = False
     for coro in asyncio.as_completed(tasks):
-        # Drain any queued rate-limit notifications before yielding the next result
         while not notify_queue.empty():
             yield notify_queue.get_nowait()
-        result = await coro
+        try:
+            result = await coro
+        except _AuthError as e:
+            auth_failed = True
+            # Cancel all remaining tasks immediately
+            for t in tasks:
+                t.cancel()
+            yield {
+                "event": "auth_error",
+                "provider": e.provider,
+                "message": f"Invalid API key for {e.provider}. Please go back and enter a valid key.",
+            }
+            break
+        if auth_failed:
+            break
         while not notify_queue.empty():
             yield notify_queue.get_nowait()
         yield result

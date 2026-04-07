@@ -147,6 +147,14 @@ async def analyze_endpoint(
                 yield f"data: {payload}\n\n"
             elif result["event"] == "rate_limit_clear":
                 yield f"data: {json.dumps({'event': 'rate_limit_clear'})}\n\n"
+            elif result["event"] == "auth_error":
+                payload = json.dumps({
+                    "event": "auth_error",
+                    "provider": result["provider"],
+                    "message": result["message"],
+                })
+                yield f"data: {payload}\n\n"
+                break
             elif result["event"] == "scope_info":
                 payload = json.dumps({
                     "event": "scope_info",

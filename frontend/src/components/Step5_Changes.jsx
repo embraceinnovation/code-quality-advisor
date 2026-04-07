@@ -213,11 +213,6 @@ export default function Step5_Changes({ changes, selectedIds, onSelectionChange,
 
         {/* Package section */}
         <div className="card p-4 space-y-3">
-          <div className="flex items-center justify-between text-sm">
-            <span className="font-semibold text-gray-700">Ready to apply</span>
-            <span className="text-brand-600 font-bold">{selected.size} fix{selected.size !== 1 ? 'es' : ''} across {new Set([...changes].filter(c => selected.has(c.id)).map(c => c.file_path)).size} file{new Set([...changes].filter(c => selected.has(c.id)).map(c => c.file_path)).size !== 1 ? 's' : ''}</span>
-          </div>
-
           <input
             type="text"
             placeholder={`cqa/improvements-${new Date().toISOString().replace(/[-:]/g,'').replace('T','-').slice(0,15)}`}

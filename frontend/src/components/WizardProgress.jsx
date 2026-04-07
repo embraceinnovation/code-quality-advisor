@@ -4,8 +4,9 @@ const STEPS = [
   { n: 3, label: 'Detect Stack' },
   { n: 4, label: 'Analyze' },
   { n: 5, label: 'Review' },
-  { n: 6, label: 'Push Branch' },
-  { n: 7, label: 'Report' },
+  { n: 6, label: 'Validate' },
+  { n: 7, label: 'Push Branch' },
+  { n: 8, label: 'Report' },
 ]
 
 export default function WizardProgress({ currentStep, onStepClick }) {

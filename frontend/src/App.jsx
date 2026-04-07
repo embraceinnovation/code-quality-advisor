@@ -6,6 +6,7 @@ import Step2_RepoSelect from './components/Step2_RepoSelect.jsx'
 import Step3_Scan from './components/Step3_Scan.jsx'
 import Step4_Analyze from './components/Step4_Analyze.jsx'
 import Step5_Changes from './components/Step5_Changes.jsx'
+import Step5b_ValidateFixes from './components/Step5b_ValidateFixes.jsx'
 import Step6_Review from './components/Step6_Review.jsx'
 import Step7_Report from './components/Step7_Report.jsx'
 
@@ -17,6 +18,7 @@ const INITIAL_STATE = {
   llm: null,
   changes: [],
   selectedChangeIds: [],
+  branchName: null,
   pendingBranch: null,
   pushUrl: null,
   report: null,
@@ -123,20 +125,32 @@ export default function App() {
               onSelectionChange={(ids) => update({ selectedChangeIds: ids })}
               onBack={back}
               onNewRepo={newRepo}
-              onPackage={(ids, branchResult) => {
-                update({ selectedChangeIds: ids, pendingBranch: branchResult })
+              onPackage={(ids, name) => {
+                update({ selectedChangeIds: ids, branchName: name })
                 next()
               }}
             />
           )}
           {step === 6 && (
+            <Step5b_ValidateFixes
+              changes={state.changes}
+              selectedIds={state.selectedChangeIds}
+              onBack={back}
+              onProceed={(approvedIds) => {
+                update({ selectedChangeIds: approvedIds })
+                next()
+              }}
+            />
+          )}
+          {step === 7 && (
             <Step6_Review
-              pendingBranch={state.pendingBranch}
+              selectedIds={state.selectedChangeIds}
+              branchName={state.branchName}
               onBack={back}
               onPushed={(url) => { update({ pushUrl: url }); next() }}
             />
           )}
-          {step === 7 && (
+          {step === 8 && (
             <Step7_Report
               repo={state.repo}
               pushUrl={state.pushUrl}

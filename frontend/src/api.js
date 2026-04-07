@@ -79,6 +79,33 @@ export const saveSelection = (changeIds) =>
     body: JSON.stringify({ change_ids: changeIds }),
   })
 
+export function validateFixes(changeIds, onEvent) {
+  return fetch(BASE + '/changes/validate-fixes', {
+    ...OPTS,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ change_ids: changeIds }),
+  }).then(async (res) => {
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const reader = res.body.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ''
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      buffer += decoder.decode(value, { stream: true })
+      const lines = buffer.split('\n\n')
+      buffer = lines.pop()
+      for (const chunk of lines) {
+        const dataLine = chunk.split('\n').find((l) => l.startsWith('data: '))
+        if (dataLine) {
+          try { onEvent(JSON.parse(dataLine.slice(6))) } catch (_) {}
+        }
+      }
+    }
+  })
+}
+
 // ── Git ───────────────────────────────────────────────────────────────────────
 export function createBranch(changeIds, branchName, onEvent) {
   return fetch(BASE + '/git/branch', {

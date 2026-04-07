@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { pushBranch } from '../api.js'
+import { useState, useEffect } from 'react'
+import { createBranch, pushBranch } from '../api.js'
 
 // Parse `git diff --stat` into [{file, additions, deletions}]
 function parseStatSummary(stat) {
@@ -47,13 +47,46 @@ function FileDiff({ file, additions, deletions, diffLines, selected, onSelect })
   )
 }
 
-export default function Step6_Review({ pendingBranch, onBack, onPushed }) {
-  const [loading, setLoading] = useState(false)
+export default function Step6_Review({ selectedIds, branchName, onBack, onPushed }) {
+  const [buildStatus, setBuildStatus] = useState('building') // building | ready | error
+  const [buildStage, setBuildStage] = useState('Preparing…')
+  const [buildDone, setBuildDone] = useState(0)
+  const [buildTotal, setBuildTotal] = useState(0)
+  const [pendingBranch, setPendingBranch] = useState(null)
+  const [buildError, setBuildError] = useState(null)
+  const [pushing, setPushing] = useState(false)
   const [error, setError] = useState(null)
   const [selectedFile, setSelectedFile] = useState(null)
 
+  useEffect(() => {
+    let result = null
+    createBranch(selectedIds, branchName || null, (event) => {
+      if (event.event === 'stage') {
+        setBuildStage(event.message)
+      } else if (event.event === 'progress') {
+        setBuildDone(event.done)
+        setBuildTotal(event.total)
+        setBuildStage(event.message)
+      } else if (event.event === 'done') {
+        result = event
+        setBuildStage('Done!')
+      }
+    }).then(() => {
+      if (result) {
+        setPendingBranch(result)
+        setBuildStatus('ready')
+      } else {
+        setBuildError('No result received from server')
+        setBuildStatus('error')
+      }
+    }).catch((e) => {
+      setBuildError(e.message)
+      setBuildStatus('error')
+    })
+  }, [])
+
   const handlePush = async () => {
-    setLoading(true)
+    setPushing(true)
     setError(null)
     try {
       const result = await pushBranch()
@@ -61,15 +94,37 @@ export default function Step6_Review({ pendingBranch, onBack, onPushed }) {
     } catch (e) {
       setError(e.message)
     } finally {
-      setLoading(false)
+      setPushing(false)
     }
   }
 
-  if (!pendingBranch) {
+  if (buildStatus === 'building') {
     return (
-      <div className="text-center py-16 space-y-3 text-gray-400">
-        <p>No branch prepared.</p>
-        <button onClick={onBack} className="text-blue-600 text-sm hover:underline">← Back to changes</button>
+      <div className="flex flex-col items-center justify-center h-full gap-6">
+        <div className="text-4xl animate-spin">⚙️</div>
+        <div className="text-center space-y-2">
+          <h2 className="text-xl font-bold text-gray-900">Building Branch</h2>
+          <p className="text-gray-500 text-sm">{buildStage}</p>
+          {buildTotal > 0 && (
+            <p className="text-xs text-gray-400">{buildDone} of {buildTotal} fixes applied</p>
+          )}
+        </div>
+        {buildTotal > 0 && (
+          <div className="w-64 progress-track">
+            <div className="progress-fill" style={{ width: `${Math.round((buildDone / buildTotal) * 100)}%` }} />
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  if (buildStatus === 'error') {
+    return (
+      <div className="flex flex-col items-center justify-center h-full gap-4 text-center">
+        <div className="text-4xl">❌</div>
+        <h2 className="text-xl font-bold text-gray-900">Branch Build Failed</h2>
+        <p className="text-red-600 text-sm">{buildError}</p>
+        <button onClick={onBack} className="btn btn-back">← Back</button>
       </div>
     )
   }
@@ -129,10 +184,10 @@ export default function Step6_Review({ pendingBranch, onBack, onPushed }) {
         {error && <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-red-700 text-xs">{error}</div>}
 
         <div className="space-y-2">
-          <button onClick={handlePush} disabled={loading} className="btn btn-success w-full py-3">
-            {loading ? 'Pushing…' : '🚀 Push to Origin'}
+          <button onClick={handlePush} disabled={pushing} className="btn btn-success w-full py-3">
+            {pushing ? 'Pushing…' : '🚀 Push to Origin'}
           </button>
-          <button onClick={onBack} disabled={loading} className="btn btn-back w-full">← Back</button>
+          <button onClick={onBack} disabled={pushing} className="btn btn-back w-full">← Back</button>
         </div>
       </div>
 

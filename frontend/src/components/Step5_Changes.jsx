@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { createBranch } from '../api.js'
 
 const SEVERITY_STYLE = {
   critical:   'bg-red-100 text-red-700 border-red-200',
@@ -19,11 +18,6 @@ export default function Step5_Changes({ changes, selectedIds, onSelectionChange,
   const [selected, setSelected] = useState(new Set(selectedIds))
   const [active, setActive] = useState(changes[0] || null)   // highlighted recommendation
   const [branchName, setBranchName] = useState('')
-  const [packaging, setPackaging] = useState(false)
-  const [packagingStage, setPackagingStage] = useState('')
-  const [packagingDone, setPackagingDone] = useState(0)
-  const [packagingTotal, setPackagingTotal] = useState(0)
-  const [packagingFile, setPackagingFile] = useState('')
   const [error, setError] = useState(null)
   const [severityFilter, setSeverityFilter] = useState('all')
 
@@ -52,36 +46,9 @@ export default function Step5_Changes({ changes, selectedIds, onSelectionChange,
     return acc
   }, {})
 
-  const handlePackage = async () => {
+  const handlePackage = () => {
     if (selected.size === 0) return
-    setPackaging(true)
-    setPackagingDone(0)
-    setPackagingTotal(selected.size)
-    setPackagingStage('Starting…')
-    setPackagingFile('')
-    setError(null)
-    let result = null
-    try {
-      await createBranch(Array.from(selected), branchName || null, (event) => {
-        if (event.event === 'stage') {
-          setPackagingStage(event.message)
-        } else if (event.event === 'progress') {
-          setPackagingDone(event.done)
-          setPackagingTotal(event.total)
-          setPackagingStage(event.message)
-          setPackagingFile(event.file)
-        } else if (event.event === 'done') {
-          result = event
-          setPackagingStage('Done!')
-        }
-      })
-      if (result) onPackage(Array.from(selected), result)
-      else setError('No result received from server')
-    } catch (e) {
-      setError(e.message)
-    } finally {
-      setPackaging(false)
-    }
+    onPackage(Array.from(selected), branchName || null)
   }
 
   if (changes.length === 0) {
@@ -182,7 +149,7 @@ export default function Step5_Changes({ changes, selectedIds, onSelectionChange,
           })}
         </div>
 
-        <button onClick={onBack} disabled={packaging} className="btn btn-back w-full">← Back</button>
+        <button onClick={onBack} className="btn btn-back w-full">← Back</button>
       </div>
 
       {/* ── Right 50%: recommendation detail + package action ─────────────── */}
@@ -256,37 +223,17 @@ export default function Step5_Changes({ changes, selectedIds, onSelectionChange,
             placeholder={`cqa/improvements-${new Date().toISOString().replace(/[-:]/g,'').replace('T','-').slice(0,15)}`}
             value={branchName}
             onChange={(e) => setBranchName(e.target.value)}
-            disabled={packaging}
-            className="input font-mono text-xs disabled:opacity-50"
+            className="input font-mono text-xs"
           />
-
-          {packaging && (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-xs text-gray-600">
-                <span className="truncate pr-2">{packagingStage}</span>
-                {packagingTotal > 0 && (
-                  <span className="font-semibold text-brand-600 flex-shrink-0">{packagingDone}/{packagingTotal}</span>
-                )}
-              </div>
-              {packagingTotal > 0 && (
-                <div className="progress-track">
-                  <div className="progress-fill" style={{ width: `${Math.round((packagingDone / packagingTotal) * 100)}%` }} />
-                </div>
-              )}
-              {packagingFile && <div className="text-xs text-gray-400 font-mono truncate">{packagingFile}</div>}
-            </div>
-          )}
 
           {error && <div className="bg-red-50 border border-red-200 rounded-xl p-2 text-red-700 text-xs">{error}</div>}
 
           <button
             onClick={handlePackage}
-            disabled={selected.size === 0 || packaging}
+            disabled={selected.size === 0}
             className="btn btn-primary w-full py-3"
           >
-            {packaging
-              ? `Generating fixes… (${packagingDone}/${packagingTotal})`
-              : `Package ${selected.size} change${selected.size !== 1 ? 's' : ''} into branch →`}
+            Validate {selected.size} fix{selected.size !== 1 ? 'es' : ''} →
           </button>
         </div>
       </div>

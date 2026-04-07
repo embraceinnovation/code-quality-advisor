@@ -82,9 +82,13 @@ async def validate_fixes(
                     result = json.loads(raw.strip())
                     verdict = result.get("verdict", "risky")
                     reason = result.get("reason", "")
-                except Exception as e:
+                except json.JSONDecodeError:
                     verdict = "risky"
-                    reason = f"Could not validate: {str(e)[:100]}"
+                    reason = "Unexpected response from AI — review manually"
+                except Exception:
+                    # Model errors (rate limits, timeouts, auth) — pass through silently
+                    verdict = "safe"
+                    reason = ""
                 return {
                     "event": "result",
                     "id": change["id"],

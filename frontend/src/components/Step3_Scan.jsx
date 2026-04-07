@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { detectFrameworks } from '../api.js'
+import { detectFrameworks, validateLlmKey } from '../api.js'
 
 const LLM_PROVIDERS = [
   // ── Free tier ────────────────────────────────────────────────────────────────
@@ -177,6 +177,7 @@ export default function Step3_Scan({ repo, onBack, onContinue }) {
     return key
   })
   const [showKey, setShowKey] = useState(false)
+  const [keyValidation, setKeyValidation] = useState(null) // null | 'testing' | {valid, reason}
 
   const providerConfig = LLM_PROVIDERS.find((p) => p.id === llmProvider)
 
@@ -184,6 +185,7 @@ export default function Step3_Scan({ repo, onBack, onContinue }) {
     const cfg = LLM_PROVIDERS.find((p) => p.id === id)
     setLlmProvider(id)
     setLlmModel(cfg.models[0].id)
+    setKeyValidation(null)
     // Restore saved key for this provider, fall back to legacy single key
     const savedKey = localStorage.getItem(`cqa_llm_key_${id}`)
       || localStorage.getItem('cqa_llm_key')
@@ -200,8 +202,18 @@ export default function Step3_Scan({ repo, onBack, onContinue }) {
 
   const handleKeyChange = (key) => {
     setLlmApiKey(key)
-    // Store per-provider so switching back restores the key
+    setKeyValidation(null)
     localStorage.setItem(`cqa_llm_key_${llmProvider}`, key)
+  }
+
+  const handleTestKey = async () => {
+    setKeyValidation('testing')
+    try {
+      const result = await validateLlmKey(llmProvider, llmModel, llmApiKey.trim())
+      setKeyValidation(result)
+    } catch (e) {
+      setKeyValidation({ valid: false, reason: 'Could not reach the server — check your connection.' })
+    }
   }
 
   const canStart = !providerConfig?.keyRequired || llmApiKey.trim().length > 0
@@ -364,8 +376,8 @@ export default function Step3_Scan({ repo, onBack, onContinue }) {
           </div>
 
           {providerConfig.keyRequired ? (
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">
+            <div className="space-y-2">
+              <label className="block text-xs font-medium text-gray-500">
                 {providerConfig.keyLabel}{' '}
                 <a href={providerConfig.keyHref} target="_blank" rel="noopener noreferrer" className="text-brand-600 hover:underline">(get key ↗)</a>
               </label>
@@ -375,12 +387,25 @@ export default function Step3_Scan({ repo, onBack, onContinue }) {
                   value={llmApiKey}
                   onChange={(e) => handleKeyChange(e.target.value)}
                   placeholder={providerConfig.keyPlaceholder}
-                  className="input font-mono flex-1"
+                  className={`input font-mono flex-1 ${keyValidation && keyValidation !== 'testing' ? keyValidation.valid ? 'border-green-400' : 'border-red-400' : ''}`}
                 />
                 <button onClick={() => setShowKey((v) => !v)} className="btn btn-ghost px-3 py-2 text-xs">
                   {showKey ? 'Hide' : 'Show'}
                 </button>
+                <button
+                  onClick={handleTestKey}
+                  disabled={!llmApiKey.trim() || keyValidation === 'testing'}
+                  className="btn btn-ghost px-3 py-2 text-xs disabled:opacity-40 whitespace-nowrap"
+                >
+                  {keyValidation === 'testing' ? '⏳ Testing…' : 'Test Key'}
+                </button>
               </div>
+              {keyValidation && keyValidation !== 'testing' && (
+                <div className={`flex items-start gap-2 rounded-lg px-3 py-2 text-xs font-medium ${keyValidation.valid ? 'bg-green-50 border border-green-200 text-green-800' : 'bg-red-50 border border-red-200 text-red-700'}`}>
+                  <span className="shrink-0">{keyValidation.valid ? '✓' : '✗'}</span>
+                  <span>{keyValidation.valid ? (keyValidation.reason || 'API key is valid.') : keyValidation.reason}</span>
+                </div>
+              )}
             </div>
           ) : (
             <div className="bg-purple-50 border border-purple-200 rounded-xl p-3 text-xs text-purple-800 space-y-1">

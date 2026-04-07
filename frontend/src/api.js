@@ -113,6 +113,13 @@ export const pushBranch = () =>
   _json('/git/push', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
 
 // ── Report ────────────────────────────────────────────────────────────────────
+export const validateLlmKey = (provider, model, apiKey) =>
+  _json('/scan/validate-key', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ llm_provider: provider, llm_model: model, llm_api_key: apiKey }),
+  })
+
 export const generateReport = () =>
   _json('/report/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
 

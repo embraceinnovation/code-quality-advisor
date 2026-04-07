@@ -8,7 +8,7 @@ from app.dependencies import get_current_session
 from app.session_store import SessionData
 from app.services import github_client, gitlab_client, bitbucket_client
 from app.services.framework_detector import detect_frameworks
-from app.services.claude_analyzer import analyze_files
+from app.services.claude_analyzer import analyze_files, _call_llm
 from app.services.llm_recommender import recommend_llms
 
 router = APIRouter(prefix="/api/scan", tags=["scan"])
@@ -26,6 +26,34 @@ class DetectRequest(BaseModel):
     owner: str
     repo: str
     branch: str
+
+
+class ValidateKeyRequest(BaseModel):
+    llm_provider: str
+    llm_model: str
+    llm_api_key: str
+
+
+@router.post("/validate-key")
+async def validate_key(body: ValidateKeyRequest):
+    """Make a minimal test call to confirm the API key is valid."""
+    try:
+        await _call_llm(
+            provider=body.llm_provider,
+            model=body.llm_model,
+            api_key=body.llm_api_key,
+            system_prompt="You are a test assistant.",
+            user_message="Reply with the single word: ok",
+            max_tokens=5,
+        )
+        return {"valid": True}
+    except Exception as e:
+        msg = str(e)
+        if "401" in msg or "403" in msg or "invalid_api_key" in msg.lower() or "authentication" in msg.lower() or "unauthorized" in msg.lower():
+            return {"valid": False, "reason": "Invalid API key — please check and try again."}
+        if "429" in msg or "rate" in msg.lower():
+            return {"valid": True, "reason": "Key is valid but rate limited — you may experience delays."}
+        return {"valid": False, "reason": f"Could not connect to {body.llm_provider}: {msg[:120]}"}
 
 
 class AnalyzeRequest(BaseModel):

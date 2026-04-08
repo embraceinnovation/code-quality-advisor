@@ -32,7 +32,21 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Code Quality Advisor",
     description="AI-powered code quality analysis and improvement tool",
-    version="1.0.0",
+[
+    {"line": 35, "new_content": ""}
+] 
+[
+    {"line": 36, "new_content": "    # Periodic session purge every 1 hour"}
+] 
+[
+    {"line": 37, "new_content": "    async def _purge_loop():"}
+] 
+[
+    {"line": 41, "new_content": "    async def _purge_loop():"}
+] 
+[
+    {"line": 47, "new_content": "    for _ in range(10):"}
+]
     lifespan=lifespan,
 )
 
